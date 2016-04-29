@@ -4,18 +4,21 @@ import android.Manifest;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.widget.FrameLayout;
 
 import com.rm.cameraphone.components.StartView;
 import com.rm.cameraphone.components.camera.CameraPreview;
 import com.rm.cameraphone.constants.PermissionConstants;
 import com.rm.cameraphone.controller.CameraController;
+import com.rm.cameraphone.events.OnCameraReadyListener;
+import com.rm.cameraphone.events.OnPreviewReadyListener;
 import com.rm.cameraphone.util.PermissionsUtil;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements OnPreviewReadyListener {
 
     @InjectView(R.id.camera_waiter) StartView mStartView;
     @InjectView(R.id.camera_preview) FrameLayout mCameraPreviewWrapper;
@@ -28,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         ButterKnife.inject(this);
 
-        mController = new CameraController();
+        mController = new CameraController(this);
         mStartView.show();
     }
 
@@ -42,7 +45,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
+        Log.d("MainActivity", "onStop");
         mController.onStop();
+        mCameraPreviewWrapper.removeAllViews();
+        mStartView.show();
     }
 
     @Override
@@ -51,9 +57,14 @@ public class MainActivity extends AppCompatActivity {
 
         switch (requestCode) {
             case PermissionConstants.INITIAL_REQUEST: {
-                if (PermissionsUtil.verifyPermissions(grantResults)) onShowCamera();
+                if (PermissionsUtil.verifyPermissions(grantResults)) onAddPreview();
             }
         }
+    }
+
+    @Override
+    public void onPreviewReady() {
+        mStartView.hide();
     }
 
     private void onTryCamera() {
@@ -64,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
         );
 
         if (hasPermission) {
-            onShowCamera();
+            onAddPreview();
         } else {
             PermissionsUtil.requestPermissions(
                     this,
@@ -75,13 +86,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void onShowCamera() {
-        mController.getCameraPreviewDefault(new CameraController.CameraListener() {
+    private void onAddPreview() {
+        mController.retrieveCameraPreviewDefault(new OnCameraReadyListener() {
             @Override
             public void onCameraReceived(CameraPreview preview) {
                 mCameraPreviewWrapper.addView(preview);
-                mStartView.hide();
             }
         });
     }
+
 }
