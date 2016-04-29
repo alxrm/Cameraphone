@@ -13,8 +13,8 @@ import android.widget.RelativeLayout;
 import com.rm.cameraphone.R;
 import com.rm.cameraphone.constants.StyleConstants;
 
-import static com.rm.cameraphone.constants.Interpolators.ACCELERATE;
-import static com.rm.cameraphone.constants.Interpolators.DECELERATE;
+import static com.rm.cameraphone.util.Interpolators.ACCELERATE;
+import static com.rm.cameraphone.util.Interpolators.DECELERATE;
 
 /**
  * Created by alex
@@ -45,6 +45,27 @@ public class StartView extends RelativeLayout {
         initialize();
     }
 
+    private void initialize() {
+        setWillNotDraw(false);
+        setBackgroundColor(StyleConstants.COLOR_PRIMARY_DARK);
+        setAlpha(0);
+
+        mCameraIconParams = new RelativeLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        mCameraIconParams.addRule(CENTER_IN_PARENT);
+
+        mCameraIcon = new ImageView(getContext());
+        mCameraIcon.setLayoutParams(mCameraIconParams);
+        mCameraIcon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        mCameraIcon.setImageResource(R.drawable.ic_start_icon);
+
+        mCameraIcon.setScaleX(0);
+        mCameraIcon.setScaleY(0);
+        mCameraIcon.setRotation(90);
+    }
+
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
@@ -69,27 +90,6 @@ public class StartView extends RelativeLayout {
                 animateBackground(false, null);
             }
         });
-    }
-
-    private void initialize() {
-        setWillNotDraw(false);
-        setBackgroundColor(StyleConstants.COLOR_PRIMARY_DARK);
-        setAlpha(0);
-
-        mCameraIconParams = new RelativeLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        mCameraIconParams.addRule(CENTER_IN_PARENT);
-
-        mCameraIcon = new ImageView(getContext());
-        mCameraIcon.setLayoutParams(mCameraIconParams);
-        mCameraIcon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        mCameraIcon.setImageResource(R.drawable.ic_start_icon);
-
-        mCameraIcon.setScaleX(0);
-        mCameraIcon.setScaleY(0);
-        mCameraIcon.setRotation(90);
     }
 
     private void animateBackground(boolean toShow, Animator.AnimatorListener listener) {

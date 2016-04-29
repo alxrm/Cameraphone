@@ -13,11 +13,18 @@
         android:layout_height="match_parent"
         />
 
+    <com.rm.cameraphone.components.CaptureWrapper
+        android:id="@+id/camera_capture_wrapper"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:layout_alignParentBottom="true">
+
+    </com.rm.cameraphone.components.CaptureWrapper>
+
     <com.rm.cameraphone.components.StartView
         android:id="@+id/camera_waiter"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="visible"
         />
 
 </RelativeLayout>

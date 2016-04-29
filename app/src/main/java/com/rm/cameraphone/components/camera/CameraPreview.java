@@ -43,8 +43,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     private Camera.Size mPreviewSize;
 
     // Callback
-    private OnPreviewReadyListener mListener;
     private DispatchQueue mQueue;
+    private OnPreviewReadyListener mListener;
     private Handler mHandler;
 
     public CameraPreview(Context context,
@@ -153,21 +153,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         mHandler = handler;
     }
 
-    private void notifyListener() {
-        if (mHandler == null || mListener == null) return;
-
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mListener.onPreviewReady();
-            }
-        }, 400);
-    }
-
-    private void checkQueue() {
-        if (mQueue == null) throw new IllegalStateException("Camera surface MUST have Event Loop");
-    }
-
     private Camera.Size calculateOptimalPreviewSize(List<Camera.Size> supportedPreviewSizes, int width, int height) {
         if (supportedPreviewSizes == null) return null;
 
@@ -212,5 +197,20 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         }
 
         return result;
+    }
+
+    private void notifyListener() {
+        if (mHandler == null || mListener == null) return;
+
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mListener.onPreviewReady();
+            }
+        }, 400);
+    }
+
+    private void checkQueue() {
+        if (mQueue == null) throw new IllegalStateException("Camera surface MUST have Event Loop");
     }
 }

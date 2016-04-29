@@ -1,4 +1,4 @@
-package com.rm.cameraphone.constants;
+package com.rm.cameraphone.util;
 
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;

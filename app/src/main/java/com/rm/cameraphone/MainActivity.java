@@ -4,9 +4,9 @@ import android.Manifest;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.widget.FrameLayout;
 
+import com.rm.cameraphone.components.CaptureWrapper;
 import com.rm.cameraphone.components.StartView;
 import com.rm.cameraphone.components.camera.CameraPreview;
 import com.rm.cameraphone.constants.PermissionConstants;
@@ -21,6 +21,7 @@ import butterknife.InjectView;
 public class MainActivity extends AppCompatActivity implements OnPreviewReadyListener {
 
     @InjectView(R.id.camera_waiter) StartView mStartView;
+    @InjectView(R.id.camera_capture_wrapper) CaptureWrapper mCaptureWrapper;
     @InjectView(R.id.camera_preview) FrameLayout mCameraPreviewWrapper;
 
     private CameraController mController;
@@ -45,7 +46,6 @@ public class MainActivity extends AppCompatActivity implements OnPreviewReadyLis
     @Override
     protected void onStop() {
         super.onStop();
-        Log.d("MainActivity", "onStop");
         mController.onStop();
         mCameraPreviewWrapper.removeAllViews();
         mStartView.show();
@@ -94,5 +94,4 @@ public class MainActivity extends AppCompatActivity implements OnPreviewReadyLis
             }
         });
     }
-
 }
