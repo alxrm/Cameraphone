@@ -12,6 +12,7 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.os.Build;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.View;
 
 import com.rm.cameraphone.constants.ColorConstants;
@@ -47,13 +48,21 @@ import static com.rm.cameraphone.util.Interpolators.OVERSHOOT;
  */
 public class CaptureButton extends View {
 
+    // outfit
     private int mCurrentState = STATE_PHOTO; // by default
+    private boolean mIsRecording = false;
+    private boolean mIsEnabled = true;
 
+    private Runnable mLongTapTask;
+    private EventListener mEventListener;
+
+    // convenience vars
     private float mCenterY;
     private float mCenterX;
     private int mHeight;
     private int mWidth;
 
+    // paints
     private Paint mFillPaint;
     private Paint mStrokePaint;
     private Paint mCenterFillPaint;
@@ -61,9 +70,11 @@ public class CaptureButton extends View {
     private Paint mRecordFillPaint;
     private Paint mRecordCenterPaint;
 
+    // capture button
     private RectF mFillShape;
     private float mCenterRadius;
 
+    // record button
     private float mRecordRadius;
     private RectF mRecordCenterShape;
     private float mRecordCenterRadius;
@@ -137,45 +148,12 @@ public class CaptureButton extends View {
     }
 
     @Override
-    protected void onFinishInflate() {
-        super.onFinishInflate();
-
-        postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                animateToState(STATE_VIDEO);
-            }
-        }, 2000);
-
-        postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                animateRecord(false);
-            }
-        }, 4000);
-
-        postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                animateRecord(true);
-            }
-        }, 6000);
-
-        postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                animateToState(STATE_PHOTO);
-            }
-        }, 8000);
-    }
-
-    @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
         canvas.drawRoundRect(mFillShape, dp(RADIUS_SHAPE_CORNERS), dp(RADIUS_SHAPE_CORNERS), mFillPaint);
-        canvas.drawRoundRect(mFillShape, dp(RADIUS_SHAPE_CORNERS), dp(RADIUS_SHAPE_CORNERS), mStrokePaint);
         canvas.drawCircle(mCenterX, mCenterY, mCenterRadius, mCenterFillPaint);
+        canvas.drawRoundRect(mFillShape, dp(RADIUS_SHAPE_CORNERS), dp(RADIUS_SHAPE_CORNERS), mStrokePaint);
 
         if (mCurrentState == STATE_VIDEO) {
             canvas.drawCircle(mCenterX, mCenterY, mCenterRadius, mCenterStrokePaint);
@@ -201,6 +179,39 @@ public class CaptureButton extends View {
         mCenterY = mHeight / 2;
     }
 
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (!mIsEnabled || mEventListener == null) return super.onTouchEvent(event);
+
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                handleTouch();
+                return true;
+            case MotionEvent.ACTION_UP:
+                handleRelease(event);
+                return false;
+        }
+
+        return super.onTouchEvent(event);
+    }
+
+    public void setEventListener(EventListener eventListener) {
+        mEventListener = eventListener;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return mIsEnabled;
+    }
+
+    public boolean isRecording() {
+        return mIsRecording;
+    }
+
+    public void setEnabled(boolean enabled) {
+        mIsEnabled = enabled;
+    }
+
     public void hide() {
         animateGone(false);
     }
@@ -217,10 +228,13 @@ public class CaptureButton extends View {
         animateCenter(false);
     }
 
-    public void animateRecord(boolean reverse) {
-        animateCenter(!reverse);
-        animateShape(!reverse);
-        animateRecordShape(reverse);
+    public void animateRecord(boolean toHide) {
+        if (mIsRecording == !toHide) return;
+        mIsRecording = !toHide;
+
+        animateCenter(!toHide);
+        animateShape(!toHide);
+        animateRecordShape(toHide);
     }
 
     private void animateRecordShape(final boolean toHide) {
@@ -271,7 +285,7 @@ public class CaptureButton extends View {
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
                 mCenterFillPaint.setColor(toPhoto ?
-                        COLOR_CAPTURE_CENTER_PHOTO_FILL : COLOR_CAPTURE_CENTER_VIDEO_FILL
+                                COLOR_CAPTURE_CENTER_PHOTO_FILL : COLOR_CAPTURE_CENTER_VIDEO_FILL
                 );
             }
         });
@@ -345,6 +359,28 @@ public class CaptureButton extends View {
         animatorSet.start();
     }
 
+    private void animateClickedState(final boolean clicked) {
+        if (mCurrentState != STATE_PHOTO) return;
+
+        Animators.animateValue(0, 1, DECELERATE, new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                float fraction = animation.getAnimatedFraction();
+                float strokeWidth = calculateAnimatedValue(
+                        dp(SHAPE_STROKE_WIDTH), dp(20), fraction, !clicked
+                );
+
+                mFillShape.top = calculateAnimatedValue(dp(SHAPE_STROKE_WIDTH), dp(SHAPE_STROKE_WIDTH + 5), fraction, !clicked);
+                ;
+                mFillShape.bottom = calculateAnimatedValue(dp(SHAPE_HEIGHT), dp(SHAPE_HEIGHT - 5), fraction, !clicked);
+                mFillShape.left = calculateAnimatedValue(dp(SHAPE_LEFT_PHOTO), dp(SHAPE_LEFT_PHOTO + 5), fraction, !clicked);
+                mFillShape.right = calculateAnimatedValue(dp(SHAPE_RIGHT_PHOTO), dp(SHAPE_RIGHT_PHOTO - 5), fraction, !clicked);
+                mStrokePaint.setStrokeWidth(strokeWidth);
+                invalidate();
+            }
+        }).start();
+    }
+
     private void animateGone(boolean reverse) {
         animate()
                 .scaleX(reverse ? 1 : 0)
@@ -352,5 +388,56 @@ public class CaptureButton extends View {
                 .setDuration(200)
                 .setInterpolator(DECELERATE)
                 .start();
+    }
+
+    private void handleTouch() {
+        animateClickedState(true);
+
+        mLongTapTask = makeLongClickTask();
+        postDelayed(mLongTapTask, 500);
+    }
+
+    private void handleRelease(MotionEvent event) {
+        final long touchTime = event.getEventTime() - event.getDownTime();
+        removeCallbacks(mLongTapTask);
+
+        if (touchTime < 500) {
+            handleClick();
+        } else {
+            mEventListener.onStopRecord();
+
+            animateRecord(true);
+        }
+    }
+
+    private void handleClick() {
+        if (mCurrentState == STATE_PHOTO) {
+            mEventListener.onCapture();
+
+            animateClickedState(false);
+        } else {
+            if (!isRecording()) mEventListener.onStartRecord();
+            else mEventListener.onStopRecord();
+
+            animateRecord(isRecording());
+        }
+    }
+
+    private Runnable makeLongClickTask() {
+        return new Runnable() {
+            @Override
+            public void run() {
+                mEventListener.onStartRecord();
+
+                animateClickedState(false);
+                animateRecord(false);
+            }
+        };
+    }
+
+    public interface EventListener {
+        void onStartRecord();
+        void onStopRecord();
+        void onCapture();
     }
 }
