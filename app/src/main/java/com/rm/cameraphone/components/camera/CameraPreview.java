@@ -123,10 +123,13 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                 }
 
                 int orientation = calculatePreviewOrientation(mCameraInfo, mDisplayOrientation);
-                Camera.Parameters parameters = mCamera.getParameters();
-                parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
 
                 try {
+                    Camera.Parameters parameters = mCamera.getParameters();
+                    parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
+                    parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+                    parameters.setAutoWhiteBalanceLock(true);
+
                     mCamera.setParameters(parameters);
                     mCamera.setDisplayOrientation(orientation);
                     mCamera.setPreviewDisplay(mHolder);
@@ -212,5 +215,33 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     private void checkQueue() {
         if (mQueue == null) throw new IllegalStateException("Camera surface MUST have Event Loop");
+    }
+
+    public void updateParameters(final String key, final int value) {
+        checkQueue();
+
+        mQueue.postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                mCamera.getParameters().set(key, value);
+                mCamera.startPreview();
+
+                notifyListener();
+            }
+        });
+    }
+
+    public void updateParameters(final String key, final String value) {
+        checkQueue();
+
+        mQueue.postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                mCamera.getParameters().set(key, value);
+                mCamera.startPreview();
+
+                notifyListener();
+            }
+        });
     }
 }

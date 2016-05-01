@@ -11,7 +11,7 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
 import com.rm.cameraphone.R;
-import com.rm.cameraphone.constants.StyleConstants;
+import com.rm.cameraphone.constants.ColorConstants;
 
 import static com.rm.cameraphone.util.Interpolators.ACCELERATE;
 import static com.rm.cameraphone.util.Interpolators.DECELERATE;
@@ -47,7 +47,7 @@ public class StartView extends RelativeLayout {
 
     private void initialize() {
         setWillNotDraw(false);
-        setBackgroundColor(StyleConstants.COLOR_PRIMARY_DARK);
+        setBackgroundColor(ColorConstants.COLOR_PRIMARY_DARK);
         setAlpha(0);
 
         mCameraIconParams = new RelativeLayout.LayoutParams(
@@ -60,10 +60,6 @@ public class StartView extends RelativeLayout {
         mCameraIcon.setLayoutParams(mCameraIconParams);
         mCameraIcon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         mCameraIcon.setImageResource(R.drawable.ic_start_icon);
-
-        mCameraIcon.setScaleX(0);
-        mCameraIcon.setScaleY(0);
-        mCameraIcon.setRotation(90);
     }
 
     @Override
@@ -73,41 +69,37 @@ public class StartView extends RelativeLayout {
     }
 
     public void show() {
-        animateBackground(true, new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                super.onAnimationEnd(animation);
-                animateIcon(true, null);
-            }
-        });
+        mCameraIcon.setScaleX(1);
+        mCameraIcon.setScaleY(1);
+        mCameraIcon.setRotation(0);
+        animateBackground(true);
     }
 
     public void hide() {
-        animateIcon(false, new AnimatorListenerAdapter() {
+        animateIcon(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
-                animateBackground(false, null);
+                animateBackground(false);
             }
         });
     }
 
-    private void animateBackground(boolean toShow, Animator.AnimatorListener listener) {
+    private void animateBackground(boolean toShow) {
         this.animate()
                 .alpha(toShow ? 1 : 0)
                 .setDuration(200)
-                .setInterpolator(DECELERATE.get())
-                .setListener(listener)
+                .setInterpolator(DECELERATE)
                 .start();
     }
 
-    private void animateIcon(boolean toShow, Animator.AnimatorListener listener) {
+    private void animateIcon(Animator.AnimatorListener listener) {
         mCameraIcon.animate()
-                .scaleY(toShow ? 1 : 0)
-                .scaleX(toShow ? 1 : 0)
-                .rotation(toShow ? 0 : 90)
+                .scaleY(0)
+                .scaleX(0)
+                .rotation(90)
                 .setDuration(300)
-                .setInterpolator(toShow ? DECELERATE.get() : ACCELERATE.get())
+                .setInterpolator(ACCELERATE)
                 .setListener(listener)
                 .start();
     }

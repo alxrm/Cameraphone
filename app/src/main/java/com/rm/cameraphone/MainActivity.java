@@ -6,6 +6,7 @@ import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.FrameLayout;
 
+import com.rm.cameraphone.components.CaptureButton;
 import com.rm.cameraphone.components.CaptureWrapper;
 import com.rm.cameraphone.components.StartView;
 import com.rm.cameraphone.components.camera.CameraPreview;
@@ -22,6 +23,7 @@ public class MainActivity extends AppCompatActivity implements OnPreviewReadyLis
 
     @InjectView(R.id.camera_waiter) StartView mStartView;
     @InjectView(R.id.camera_capture_wrapper) CaptureWrapper mCaptureWrapper;
+    @InjectView(R.id.camera_capture_button) CaptureButton mCaptureButton;
     @InjectView(R.id.camera_preview) FrameLayout mCameraPreviewWrapper;
 
     private CameraController mController;
@@ -32,7 +34,8 @@ public class MainActivity extends AppCompatActivity implements OnPreviewReadyLis
         setContentView(R.layout.activity_main);
         ButterKnife.inject(this);
 
-        mController = new CameraController(this);
+        mController = new CameraController();
+        mController.setOnPreviewListener(this);
         mStartView.show();
     }
 

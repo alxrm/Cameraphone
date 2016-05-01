@@ -7,6 +7,7 @@ import android.os.Looper;
 import android.util.Log;
 
 import com.rm.cameraphone.components.camera.CameraPreview;
+import com.rm.cameraphone.constants.CameraConstants;
 import com.rm.cameraphone.events.OnCameraReadyListener;
 import com.rm.cameraphone.events.OnPreviewReadyListener;
 import com.rm.cameraphone.util.DispatchQueue;
@@ -29,10 +30,9 @@ public class CameraController extends BaseController<Void> {
     private Camera.CameraInfo mCameraInfo;
     private int mDisplayRotation;
 
-    public CameraController(OnPreviewReadyListener previewReadyListener) {
+    public CameraController() {
         mCameraQueue = new DispatchQueue(TAG);
         mMainThreadHandler = new Handler(Looper.getMainLooper());
-        mOnPreviewListener = previewReadyListener;
     }
 
     @Override
@@ -57,8 +57,21 @@ public class CameraController extends BaseController<Void> {
         mOnCameraReadyListener = listener;
         mCurrentCameraId = cameraId;
 
-        Log.d("CameraController", "retrieveCameraPreview " + Camera.getNumberOfCameras());
         mCameraQueue.postRunnable(getCameraTask());
+    }
+
+    public void setFlashMode(String flashModeState) {
+        if (mCameraPreview == null) return;
+
+        mCameraPreview.updateParameters(CameraConstants.KEY_FLASH_MODE, flashModeState);
+    }
+
+    public void setOnCameraReadyListener(OnCameraReadyListener onCameraReadyListener) {
+        mOnCameraReadyListener = onCameraReadyListener;
+    }
+
+    public void setOnPreviewListener(OnPreviewReadyListener onPreviewListener) {
+        mOnPreviewListener = onPreviewListener;
     }
 
     private Runnable getCameraTask() {
@@ -125,4 +138,5 @@ public class CameraController extends BaseController<Void> {
             mCamera = null;
         }
     }
+
 }
