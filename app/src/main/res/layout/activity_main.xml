@@ -4,14 +4,15 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/colorPrimaryDark"
-    tools:context="com.rm.cameraphone.MainActivity">
+    android:background="@android:color/black"
+    tools:context=".ui.MainActivity">
 
     <FrameLayout
         android:id="@+id/camera_preview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         />
+
 
     <com.rm.cameraphone.components.CaptureWrapper
         android:id="@+id/camera_capture_wrapper"
@@ -27,10 +28,11 @@
 
     </com.rm.cameraphone.components.CaptureWrapper>
 
-    <com.rm.cameraphone.components.StartView
-        android:id="@+id/camera_waiter"
+    <include
+        layout="@layout/box_preview_overlay"
+        android:id="@+id/camera_preview_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        />
+        android:layout_above="@id/camera_capture_wrapper"/>
 
 </RelativeLayout>

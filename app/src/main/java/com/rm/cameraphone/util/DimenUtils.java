@@ -6,7 +6,7 @@ import android.util.DisplayMetrics;
 /**
  * Created by alex
  */
-public class DimenUtil {
+public class DimenUtils {
 
     private static DisplayMetrics sMetrics;
 

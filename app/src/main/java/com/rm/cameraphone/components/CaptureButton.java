@@ -16,6 +16,7 @@ import android.view.MotionEvent;
 import android.view.View;
 
 import com.rm.cameraphone.constants.ColorConstants;
+import com.rm.cameraphone.events.OnCaptureButtonListener;
 import com.rm.cameraphone.util.Animators;
 
 import static com.rm.cameraphone.constants.CaptureButtonConstants.RADIUS_CENTER_PHOTO;
@@ -39,7 +40,7 @@ import static com.rm.cameraphone.constants.CaptureButtonConstants.STATE_VIDEO;
 import static com.rm.cameraphone.constants.ColorConstants.COLOR_CAPTURE_CENTER_PHOTO_FILL;
 import static com.rm.cameraphone.constants.ColorConstants.COLOR_CAPTURE_CENTER_VIDEO_FILL;
 import static com.rm.cameraphone.util.Animators.calculateAnimatedValue;
-import static com.rm.cameraphone.util.DimenUtil.dp;
+import static com.rm.cameraphone.util.DimenUtils.dp;
 import static com.rm.cameraphone.util.Interpolators.DECELERATE;
 import static com.rm.cameraphone.util.Interpolators.OVERSHOOT;
 
@@ -54,7 +55,7 @@ public class CaptureButton extends View {
     private boolean mIsEnabled = true;
 
     private Runnable mLongTapTask;
-    private EventListener mEventListener;
+    private OnCaptureButtonListener mCaptureButtonListener;
 
     // convenience vars
     private float mCenterY;
@@ -102,6 +103,8 @@ public class CaptureButton extends View {
 
     private void initialize() {
         setWillNotDraw(false);
+        setScaleX(0);
+        setScaleY(0);
 
         mFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mFillPaint.setStyle(Paint.Style.FILL);
@@ -181,7 +184,7 @@ public class CaptureButton extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (!mIsEnabled || mEventListener == null) return super.onTouchEvent(event);
+        if (!mIsEnabled || mCaptureButtonListener == null) return super.onTouchEvent(event);
 
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
@@ -195,8 +198,8 @@ public class CaptureButton extends View {
         return super.onTouchEvent(event);
     }
 
-    public void setEventListener(EventListener eventListener) {
-        mEventListener = eventListener;
+    public void setOnCaptureButtonListener(OnCaptureButtonListener captureButtonListener) {
+        mCaptureButtonListener = captureButtonListener;
     }
 
     @Override
@@ -382,6 +385,7 @@ public class CaptureButton extends View {
     }
 
     private void animateGone(boolean reverse) {
+        animateRecord(true);
         animate()
                 .scaleX(reverse ? 1 : 0)
                 .scaleY(reverse ? 1 : 0)
@@ -404,7 +408,7 @@ public class CaptureButton extends View {
         if (touchTime < 500) {
             handleClick();
         } else {
-            mEventListener.onStopRecord();
+            mCaptureButtonListener.onStopRecord();
 
             animateRecord(true);
         }
@@ -412,12 +416,12 @@ public class CaptureButton extends View {
 
     private void handleClick() {
         if (mCurrentState == STATE_PHOTO) {
-            mEventListener.onCapture();
+            mCaptureButtonListener.onCapture();
 
             animateClickedState(false);
         } else {
-            if (!isRecording()) mEventListener.onStartRecord();
-            else mEventListener.onStopRecord();
+            if (!isRecording()) mCaptureButtonListener.onStartRecord();
+            else mCaptureButtonListener.onStopRecord();
 
             animateRecord(isRecording());
         }
@@ -427,17 +431,11 @@ public class CaptureButton extends View {
         return new Runnable() {
             @Override
             public void run() {
-                mEventListener.onStartRecord();
+                mCaptureButtonListener.onStartRecord();
 
                 animateClickedState(false);
                 animateRecord(false);
             }
         };
-    }
-
-    public interface EventListener {
-        void onStartRecord();
-        void onStopRecord();
-        void onCapture();
     }
 }

@@ -1,4 +1,4 @@
-package com.rm.cameraphone.util;
+package com.rm.cameraphone.worker;
 
 import android.os.Handler;
 import android.os.Looper;

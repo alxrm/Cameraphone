@@ -3,7 +3,7 @@ package com.rm.cameraphone;
 import android.app.Application;
 import android.content.Context;
 
-import com.rm.cameraphone.util.DimenUtil;
+import com.rm.cameraphone.util.DimenUtils;
 
 /**
  * Created by alex
@@ -17,7 +17,7 @@ public class Cameraphone extends Application {
         super.onCreate();
         sContext = this;
 
-        DimenUtil.init(this);
+        DimenUtils.init(this);
     }
 
     public static Context getContext() {

@@ -9,7 +9,7 @@ import android.support.v4.content.ContextCompat;
 /**
  * Created by alex
  */
-public class PermissionsUtil {
+public class PermissionUtils {
 
     public static void requestPermissions(@NonNull Activity caller, int callbackKey, String... permissions) {
         if (permissions == null || permissions.length == 0) return;
