@@ -38,6 +38,17 @@ public class Animators {
         return animator;
     }
 
+
+    public static ValueAnimator animateValue(@NonNull TimeInterpolator interpolator,
+                                             @NonNull ValueAnimator.AnimatorUpdateListener listener) {
+        ValueAnimator animator = ValueAnimator.ofFloat(0, 1);
+        animator.setDuration(200);
+        animator.setInterpolator(interpolator);
+        animator.addUpdateListener(listener);
+
+        return animator;
+    }
+
     public static float calculateAnimatedValue(float start, float end, float fraction, boolean reverse) {
         if (reverse) return end - (end - start) * fraction;
         return start + (end - start) * fraction;

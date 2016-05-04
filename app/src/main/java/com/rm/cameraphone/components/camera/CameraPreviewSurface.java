@@ -102,8 +102,8 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
             // preview surface does not exist
             return;
         }
-        stopPreview();
 
+        stopPreview();
         startPreview(holder);
 //        setOnTouchListener(new CameraTouchListener()); TODO implement that when I'll have enough time
     }
@@ -134,16 +134,20 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
             public void run() {
                 Log.d(TAG, "startPreview");
                 try {
+                    int rotation = calculatePreviewOrientation(mCameraInfo, mDisplayOrientation);
+
                     mCamera.setPreviewDisplay(mHolder);
-                    mCamera.setDisplayOrientation(calculatePreviewOrientation(mCameraInfo, mDisplayOrientation));
+                    mCamera.setDisplayOrientation(rotation);
+
                     Camera.Parameters parameters = mCamera.getParameters();
 
-                    if (mHasAutoFocus) {
+                    if (mHasAutoFocus)
                         parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-                    }
 
+                    parameters.setRotation(rotation);
                     parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
                     mCamera.setParameters(parameters);
+
                     mCamera.startPreview();
                 } catch (Exception e) {
                     Log.e(TAG, "Error starting camera preview: " + e.getMessage());
@@ -206,6 +210,7 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
         return mActivity.getWindowManager().getDefaultDisplay().getRotation();
     }
 
+    // utility methods
     private Camera.Size calculateOptimalPreviewSize(List<Camera.Size> supportedPreviewSizes, int width, int height) {
         if (supportedPreviewSizes == null) return null;
 

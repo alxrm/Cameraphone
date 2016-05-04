@@ -343,7 +343,7 @@ public class CaptureButton extends View {
                     }
                 });
 
-        ValueAnimator animatorShape = Animators.animateValue(0, 1, DECELERATE,
+        ValueAnimator animatorShape = Animators.animateValue(DECELERATE,
                 new ValueAnimator.AnimatorUpdateListener() {
                     @Override
                     public void onAnimationUpdate(ValueAnimator animation) {
@@ -365,7 +365,7 @@ public class CaptureButton extends View {
     private void animateClickedState(final boolean clicked) {
         if (mCurrentState != STATE_PHOTO) return;
 
-        Animators.animateValue(0, 1, DECELERATE, new ValueAnimator.AnimatorUpdateListener() {
+        Animators.animateValue(DECELERATE, new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 float fraction = animation.getAnimatedFraction();

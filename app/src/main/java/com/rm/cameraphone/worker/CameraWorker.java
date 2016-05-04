@@ -2,6 +2,7 @@ package com.rm.cameraphone.worker;
 
 import android.app.Activity;
 import android.hardware.Camera;
+import android.os.Environment;
 import android.util.Log;
 
 import com.rm.cameraphone.components.camera.CameraPreviewSurface;
@@ -9,8 +10,12 @@ import com.rm.cameraphone.events.OnCameraFocusedListener;
 import com.rm.cameraphone.util.DispatchUtils;
 import com.rm.cameraphone.util.SharedMap;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_PREVIEW;
 import static com.rm.cameraphone.util.DispatchUtils.runOnUiThread;
@@ -33,6 +38,46 @@ public class CameraWorker extends BaseWorker {
     private Runnable mTaskSetupPreview;
     private Runnable mTaskClearPreview;
     private Runnable mTaskTakePicture;
+
+    Camera.PictureCallback mPicture = new Camera.PictureCallback() {
+        @Override
+        public void onPictureTaken(byte[] data, Camera camera) {
+            camera.startPreview();
+
+            File pictureFile = getOutputMediaFile();
+            if (pictureFile == null) {
+                return;
+            }
+            try {
+                FileOutputStream fos = new FileOutputStream(pictureFile);
+                fos.write(data);
+                fos.close();
+            } catch (IOException e) {
+                Log.e(TAG, e.getMessage());
+            }
+        }
+    };
+
+    private static File getOutputMediaFile() {
+        File mediaStorageDir = new File(
+                Environment
+                        .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                "MyCameraApp");
+        if (!mediaStorageDir.exists()) {
+            if (!mediaStorageDir.mkdirs()) {
+                Log.d("MyCameraApp", "failed to create directory");
+                return null;
+            }
+        }
+        // Create a media file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss")
+                .format(new Date());
+        File mediaFile;
+        mediaFile = new File(mediaStorageDir.getPath() + File.separator
+                + "IMG_" + timeStamp + ".jpg");
+
+        return mediaFile;
+    }
 
     public CameraWorker(Activity host) {
         super(host);
@@ -112,7 +157,7 @@ public class CameraWorker extends BaseWorker {
         return new Runnable() {
             @Override
             public void run() {
-
+                mCamera.takePicture(null, null, mPicture);
             }
         };
     }
@@ -145,6 +190,7 @@ public class CameraWorker extends BaseWorker {
             @Override
             public void run() {
                 mTaskTakePicture.run();
+
                 runOnUiThread(mainThreadCallback);
             }
         });
@@ -178,5 +224,4 @@ public class CameraWorker extends BaseWorker {
         Log.d("MainActivity", "getCameraId " + mCameraId);
         return mCameraId;
     }
-
 }

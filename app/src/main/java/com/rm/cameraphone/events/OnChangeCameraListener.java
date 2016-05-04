@@ -5,4 +5,5 @@ package com.rm.cameraphone.events;
  */
 public interface OnChangeCameraListener {
     void onChangeCamera();
+    void onCameraChanged();
 }

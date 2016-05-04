@@ -5,10 +5,12 @@ import android.hardware.Camera;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 
 import com.rm.cameraphone.R;
+import com.rm.cameraphone.components.CameraSwitchButton;
 import com.rm.cameraphone.components.CaptureButton;
 import com.rm.cameraphone.components.CaptureWrapper;
 import com.rm.cameraphone.components.camera.CameraPreviewSurface;
@@ -34,6 +36,7 @@ public class MainActivity extends AppCompatActivity implements
     @InjectView(R.id.camera_preview_overlay) RelativeLayout mPreviewOverlay;
     @InjectView(R.id.camera_capture_wrapper) CaptureWrapper mCaptureWrapper;
     @InjectView(R.id.camera_capture_button) CaptureButton mCaptureButton;
+    @InjectView(R.id.camera_switch_button) CameraSwitchButton mSwitchButton;
     @InjectView(R.id.camera_preview) FrameLayout mCameraPreviewWrapper;
 
     private CameraWorker mCameraWorker;
@@ -53,6 +56,13 @@ public class MainActivity extends AppCompatActivity implements
 
     private void setupViews() {
         mCaptureButton.setOnCaptureButtonListener(this);
+        mSwitchButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mSwitchButton.toggle();
+                onChangeCamera();
+            }
+        });
     }
 
     private void onTryCamera() {
@@ -77,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements
             @Override
             public void run() {
                 mCameraPreview = (CameraPreviewSurface) SharedMap.holder().get(KEY_CAMERA_PREVIEW);
+                if (mCameraPreview == null) return;
 
                 mCameraPreviewWrapper.addView(mCameraPreview);
                 mCaptureButton.show();
@@ -89,6 +100,15 @@ public class MainActivity extends AppCompatActivity implements
     public void onResume() {
         super.onResume();
         mCameraWorker.onResume();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (mCaptureButton.isRecording()) {
+            mCaptureButton.animateRecord(true);
+            onStopRecord();
+        }
     }
 
     @Override
@@ -125,17 +145,27 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void onChangeCamera() {
         animateOverlay(true);
+        mCaptureButton.setEnabled(false);
+        mSwitchButton.setEnabled(false);
+
         mCameraPreviewWrapper.removeAllViews();
         mCameraWorker.changeCamera(new Runnable() {
             @Override
             public void run() {
-                mCameraPreview = (CameraPreviewSurface) SharedMap
-                        .holder().get(KEY_CAMERA_PREVIEW);
-                mCameraPreviewWrapper.addView(mCameraPreview);
-
-                animateOverlay(false);
+                onCameraChanged();
             }
         });
+    }
+
+    @Override
+    public void onCameraChanged() {
+        mCameraPreview = (CameraPreviewSurface) SharedMap.holder().get(KEY_CAMERA_PREVIEW);
+
+        mCameraPreviewWrapper.addView(mCameraPreview);
+
+        mCaptureButton.setEnabled(true);
+        mSwitchButton.setEnabled(true);
+        animateOverlay(false);
     }
 
     private void animateOverlay(boolean show) {

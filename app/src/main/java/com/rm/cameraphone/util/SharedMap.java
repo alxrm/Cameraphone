@@ -36,7 +36,10 @@ public class SharedMap {
     }
 
     public synchronized Object get(String key) {
-        return sDataPool.get(key).get();
+        WeakReference<Object> ref = sDataPool.get(key);
+        if (ref != null) return ref.get();
+
+        return null;
     }
 
     public synchronized void clear() {
