@@ -25,6 +25,13 @@
         android:layout_marginEnd="16dp"
         />
 
+    <include
+        android:id="@+id/camera_preview_overlay"
+        layout="@layout/box_preview_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        />
+
     <com.rm.cameraphone.components.CaptureWrapper
         android:id="@+id/camera_capture_wrapper"
         android:layout_width="match_parent"
@@ -52,11 +59,4 @@
 
     </com.rm.cameraphone.components.CaptureWrapper>
 
-    <include
-        android:id="@+id/camera_preview_overlay"
-        layout="@layout/box_preview_overlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_above="@id/camera_capture_wrapper"
-        />
 </RelativeLayout>

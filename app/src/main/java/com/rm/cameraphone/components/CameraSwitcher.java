@@ -116,6 +116,14 @@ public class CameraSwitcher extends FrameLayout {
         mCenterY = mHeight / 2;
     }
 
+    public void show() {
+        animateGone(false);
+    }
+
+    public void hide() {
+        animateGone(true);
+    }
+
     public void toggle() {
         mRotatableIcon.animate().rotationBy(-180).setDuration(400).setInterpolator(DECELERATE).start();
 
@@ -143,5 +151,13 @@ public class CameraSwitcher extends FrameLayout {
                 invalidate();
             }
         }).start();
+    }
+
+    private void animateGone(boolean toHide) {
+        animate()
+                .alpha(toHide ? 0 : 1)
+                .setDuration(200)
+                .setInterpolator(DECELERATE)
+                .start();
     }
 }
