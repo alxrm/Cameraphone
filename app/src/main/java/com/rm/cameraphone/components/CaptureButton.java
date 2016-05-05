@@ -343,7 +343,7 @@ public class CaptureButton extends View {
                     }
                 });
 
-        ValueAnimator animatorShape = Animators.animateValue(DECELERATE,
+        ValueAnimator animatorShape = Animators.animateValue(200, DECELERATE,
                 new ValueAnimator.AnimatorUpdateListener() {
                     @Override
                     public void onAnimationUpdate(ValueAnimator animation) {
@@ -365,7 +365,7 @@ public class CaptureButton extends View {
     private void animateClickedState(final boolean clicked) {
         if (mCurrentState != STATE_PHOTO) return;
 
-        Animators.animateValue(DECELERATE, new ValueAnimator.AnimatorUpdateListener() {
+        Animators.animateValue(200, DECELERATE, new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 float fraction = animation.getAnimatedFraction();
@@ -374,7 +374,6 @@ public class CaptureButton extends View {
                 );
 
                 mFillShape.top = calculateAnimatedValue(dp(SHAPE_STROKE_WIDTH), dp(SHAPE_STROKE_WIDTH + 5), fraction, !clicked);
-                ;
                 mFillShape.bottom = calculateAnimatedValue(dp(SHAPE_HEIGHT), dp(SHAPE_HEIGHT - 5), fraction, !clicked);
                 mFillShape.left = calculateAnimatedValue(dp(SHAPE_LEFT_PHOTO), dp(SHAPE_LEFT_PHOTO + 5), fraction, !clicked);
                 mFillShape.right = calculateAnimatedValue(dp(SHAPE_RIGHT_PHOTO), dp(SHAPE_RIGHT_PHOTO - 5), fraction, !clicked);

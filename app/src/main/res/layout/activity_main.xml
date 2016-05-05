@@ -13,6 +13,17 @@
         android:layout_height="match_parent"
         />
 
+    <com.rm.cameraphone.components.FlashSwitcher
+        android:id="@+id/camera_flash_switcher"
+        android:layout_width="32dp"
+        android:layout_height="58dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="32dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginEnd="16dp"
+        />
 
     <com.rm.cameraphone.components.CaptureWrapper
         android:id="@+id/camera_capture_wrapper"
@@ -27,8 +38,8 @@
             android:layout_centerInParent="true"
             />
 
-        <com.rm.cameraphone.components.CameraSwitchButton
-            android:id="@+id/camera_switch_button"
+        <com.rm.cameraphone.components.CameraSwitcher
+            android:id="@+id/camera_switcher"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:layout_alignParentStart="true"
@@ -42,11 +53,10 @@
     </com.rm.cameraphone.components.CaptureWrapper>
 
     <include
-        layout="@layout/box_preview_overlay"
         android:id="@+id/camera_preview_overlay"
+        layout="@layout/box_preview_overlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/camera_capture_wrapper"
         />
-
 </RelativeLayout>

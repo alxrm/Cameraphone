@@ -4,6 +4,7 @@ import android.app.Application;
 import android.content.Context;
 
 import com.rm.cameraphone.util.DimenUtils;
+import com.rm.cameraphone.util.DispatchUtils;
 
 /**
  * Created by alex
@@ -17,6 +18,7 @@ public class Cameraphone extends Application {
         super.onCreate();
         sContext = this;
 
+        DispatchUtils.init();
         DimenUtils.init(this);
     }
 

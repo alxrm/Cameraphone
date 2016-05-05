@@ -4,8 +4,10 @@ import android.app.Activity;
 import android.hardware.Camera;
 import android.os.Environment;
 import android.util.Log;
+import android.util.SparseArray;
 
 import com.rm.cameraphone.components.camera.CameraPreviewSurface;
+import com.rm.cameraphone.constants.FlashSwitcherConstants;
 import com.rm.cameraphone.events.OnCameraFocusedListener;
 import com.rm.cameraphone.util.DispatchUtils;
 import com.rm.cameraphone.util.SharedMap;
@@ -16,6 +18,7 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_PREVIEW;
 import static com.rm.cameraphone.util.DispatchUtils.runOnUiThread;
@@ -28,11 +31,12 @@ public class CameraWorker extends BaseWorker {
     private static final String TAG = "CameraWorker";
 
     private Camera mCamera;
-    private Camera.Parameters mParameters;
     private Camera.CameraInfo mCameraInfo;
     private CameraPreviewSurface mCameraPreview;
 
-    private int mCameraId;
+    private SparseArray<Camera.Parameters> mParameters;
+
+    private int mCurCameraId;
     private boolean mUsingFrontCamera;
 
     private Runnable mTaskSetupPreview;
@@ -81,18 +85,15 @@ public class CameraWorker extends BaseWorker {
 
     public CameraWorker(Activity host) {
         super(host);
+
+        mParameters = new SparseArray<>();
     }
 
     @Override
-    protected void register() {
+    protected void registerTasks() {
         mTaskSetupPreview = registerTaskSetupPreview();
         mTaskClearPreview = registerTaskClearPreview();
         mTaskTakePicture = registerTaskTakePicture();
-    }
-
-    @Override
-    public void onAllow() {
-
     }
 
     @Override
@@ -124,15 +125,19 @@ public class CameraWorker extends BaseWorker {
         return new Runnable() {
             @Override
             public void run() {
+                Log.d(TAG, "SETUP PREVIEW");
                 mCamera = getCameraInstance(mUsingFrontCamera);
-                if (mCamera == null) {
-                    return;
+                if (mCamera == null) return;
+
+                Camera.Parameters parameters = mParameters.get(mCurCameraId);
+
+                if (parameters == null) {
+                    parameters = mCamera.getParameters();
+                    mParameters.append(mCurCameraId, parameters);
                 }
 
-                mParameters = mCamera.getParameters();
-                mCamera.setParameters(mParameters);
-
-                mCameraInfo = getCameraInfo(mCameraId);
+                mCamera.setParameters(parameters);
+                mCameraInfo = getCameraInfo(mCurCameraId);
 
                 mCameraPreview = new CameraPreviewSurface(
                         mHost, mCamera, mCameraInfo, (OnCameraFocusedListener) mHost
@@ -147,8 +152,15 @@ public class CameraWorker extends BaseWorker {
         return new Runnable() {
             @Override
             public void run() {
-                mCamera.stopPreview();
-                mCamera.release();
+                Log.d(TAG, "CLEAR PREVIEW");
+                if (mCamera == null) return;
+
+                try {
+                    mCamera.stopPreview();
+                    mCamera.release();
+                } catch (Exception e) {
+                    Log.e(TAG, e.getMessage());
+                }
             }
         };
     }
@@ -157,6 +169,7 @@ public class CameraWorker extends BaseWorker {
         return new Runnable() {
             @Override
             public void run() {
+                Log.d(TAG, "TAKE PICTURE");
                 mCamera.takePicture(null, null, mPicture);
             }
         };
@@ -176,6 +189,7 @@ public class CameraWorker extends BaseWorker {
         DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
             @Override
             public void run() {
+                Log.d(TAG, "CHANGE CAMERA");
                 mUsingFrontCamera = !mUsingFrontCamera;
 
                 mTaskClearPreview.run();
@@ -183,6 +197,38 @@ public class CameraWorker extends BaseWorker {
                 runOnUiThread(mainThreadCallback);
             }
         });
+    }
+
+    public void setFlashMode(int flashModeKey) {
+        Camera.Parameters parameters = mCamera.getParameters();
+        String flashMode = null;
+
+        switch (flashModeKey) {
+            case FlashSwitcherConstants.FLASH_MODE_AUTO:
+                flashMode = Camera.Parameters.FLASH_MODE_AUTO;
+                break;
+            case FlashSwitcherConstants.FLASH_MODE_OFF:
+                flashMode = Camera.Parameters.FLASH_MODE_OFF;
+                break;
+            case FlashSwitcherConstants.FLASH_MODE_ON:
+                flashMode = Camera.Parameters.FLASH_MODE_ON;
+                break;
+        }
+
+        if (flashMode == null || !hasFlashFeature(flashMode) || mCamera == null) return;
+
+        parameters.setFlashMode(flashMode);
+        mParameters.append(mCurCameraId, parameters);
+        mCamera.setParameters(parameters);
+    }
+
+    public boolean hasFlashFeature(String flashFeature) {
+        if (mCamera == null) return false;
+        if (flashFeature == null) flashFeature = Camera.Parameters.FLASH_MODE_AUTO;
+
+        Camera.Parameters parameters = mCamera.getParameters();
+        List<String> supportedFlashModes = parameters.getSupportedFlashModes();
+        return supportedFlashModes != null && supportedFlashModes.contains(flashFeature);
     }
 
     public void takePicture(final Runnable mainThreadCallback) {
@@ -217,11 +263,11 @@ public class CameraWorker extends BaseWorker {
         int count = Camera.getNumberOfCameras();
 
         if (count > 0) {
-            mCameraId = useFrontCamera ?
+            mCurCameraId = useFrontCamera ?
                     Camera.CameraInfo.CAMERA_FACING_FRONT : Camera.CameraInfo.CAMERA_FACING_BACK;
         }
 
-        Log.d("MainActivity", "getCameraId " + mCameraId);
-        return mCameraId;
+        Log.d("MainActivity", "getCameraId " + mCurCameraId);
+        return mCurCameraId;
     }
 }

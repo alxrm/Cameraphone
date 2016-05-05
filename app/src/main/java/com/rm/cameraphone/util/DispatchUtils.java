@@ -16,6 +16,12 @@ public class DispatchUtils {
 
     private static Handler sHandler;
 
+    public static void init() {
+        if (sHandler == null) {
+            sHandler = new Handler(Looper.getMainLooper());
+        }
+    }
+
     public static DispatchQueue getCameraQueue() {
         if (sCameraQueue == null) {
             sCameraQueue = new DispatchQueue("CameraQue");
@@ -38,9 +44,14 @@ public class DispatchUtils {
     }
 
     public static void runOnUiThread(Runnable task) {
-        if (sHandler == null) {
-            sHandler = new Handler(Looper.getMainLooper());
-        }
         sHandler.post(task);
+    }
+
+    public static void post(Runnable task) {
+        runOnUiThread(task);
+    }
+
+    public static void postDelayed(Runnable task, long delay) {
+        sHandler.postDelayed(task, delay);
     }
 }

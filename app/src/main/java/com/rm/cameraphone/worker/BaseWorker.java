@@ -10,12 +10,10 @@ public abstract class BaseWorker {
 
     public BaseWorker(Activity host) {
         mHost = host;
-        register();
+        registerTasks();
     }
 
-    protected abstract void register();
-
-    public abstract void onAllow();
+    protected abstract void registerTasks();
 
     public abstract void onResume();
 

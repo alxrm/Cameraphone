@@ -45,6 +45,7 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
 
     private int mDisplayOrientation;
     private boolean mHasAutoFocus;
+    private boolean mHasContiniousFocus;
 
     public CameraPreviewSurface(Activity activity, Camera camera, Camera.CameraInfo cameraInfo,
                                 OnCameraFocusedListener focusListener) {
@@ -57,11 +58,12 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
         this.mFocusListener = focusListener;
 
         List<String> supportedFocusModes = camera.getParameters().getSupportedFocusModes();
-        mHasAutoFocus = supportedFocusModes != null && supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+        mHasAutoFocus = supportedFocusModes != null && supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO);
+        mHasContiniousFocus = supportedFocusModes != null && supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
 
         mDisplayOrientation = getScreenOrientation();
 
-        initTasks();
+        registerTasks();
         initHolder();
     }
 
@@ -75,7 +77,7 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
         }
     }
 
-    private void initTasks() {
+    private void registerTasks() {
         mTaskStartPreview = registerTaskStartPreview();
         mTaskStopPreview = registerTaskStopPreview();
     }
@@ -132,7 +134,7 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
         return new Runnable() {
             @Override
             public void run() {
-                Log.d(TAG, "startPreview");
+                Log.d(TAG, "START PREVIEW");
                 try {
                     int rotation = calculatePreviewOrientation(mCameraInfo, mDisplayOrientation);
 
@@ -141,8 +143,10 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
 
                     Camera.Parameters parameters = mCamera.getParameters();
 
-                    if (mHasAutoFocus)
+                    if (mHasContiniousFocus)
                         parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+                    else if (mHasAutoFocus)
+                        parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
 
                     parameters.setRotation(rotation);
                     parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
@@ -160,7 +164,7 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
         return new Runnable() {
             @Override
             public void run() {
-                Log.d(TAG, "stopPreview");
+                Log.d(TAG, "STOP PREVIEW");
                 try {
                     mCamera.stopPreview();
                 } catch (Exception e) {
@@ -184,7 +188,12 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
 
     @Override
     public void onAutoFocus(boolean success, Camera camera) {
-        focused();
+        DispatchUtils.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                focused();
+            }
+        });
     }
 
     private void startFocusing() {

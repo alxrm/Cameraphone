@@ -4,19 +4,20 @@ import android.Manifest;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 
 import com.rm.cameraphone.R;
-import com.rm.cameraphone.components.CameraSwitchButton;
+import com.rm.cameraphone.components.CameraSwitcher;
 import com.rm.cameraphone.components.CaptureButton;
 import com.rm.cameraphone.components.CaptureWrapper;
+import com.rm.cameraphone.components.FlashSwitcher;
 import com.rm.cameraphone.components.camera.CameraPreviewSurface;
 import com.rm.cameraphone.events.OnCameraFocusedListener;
 import com.rm.cameraphone.events.OnCaptureButtonListener;
 import com.rm.cameraphone.events.OnChangeCameraListener;
+import com.rm.cameraphone.events.OnFlashModeListener;
 import com.rm.cameraphone.util.PermissionUtils;
 import com.rm.cameraphone.util.SharedMap;
 import com.rm.cameraphone.worker.CameraWorker;
@@ -24,23 +25,25 @@ import com.rm.cameraphone.worker.CameraWorker;
 import butterknife.ButterKnife;
 import butterknife.InjectView;
 
+import static com.rm.cameraphone.constants.FlashSwitcherConstants.FLASH_MODE_AUTO;
 import static com.rm.cameraphone.constants.PermissionConstants.INITIAL_REQUEST;
 import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_PREVIEW;
 import static com.rm.cameraphone.util.Interpolators.DECELERATE;
 
-public class MainActivity extends AppCompatActivity implements
-        OnCaptureButtonListener, OnCameraFocusedListener, OnChangeCameraListener {
+public class MainActivity extends BaseActivity<CameraWorker> implements
+        OnCaptureButtonListener, OnCameraFocusedListener, OnChangeCameraListener, OnFlashModeListener {
 
     private static final String TAG = "MainActivity";
 
     @InjectView(R.id.camera_preview_overlay) RelativeLayout mPreviewOverlay;
     @InjectView(R.id.camera_capture_wrapper) CaptureWrapper mCaptureWrapper;
     @InjectView(R.id.camera_capture_button) CaptureButton mCaptureButton;
-    @InjectView(R.id.camera_switch_button) CameraSwitchButton mSwitchButton;
+    @InjectView(R.id.camera_flash_switcher) FlashSwitcher mFlashSwitcher;
+    @InjectView(R.id.camera_switcher) CameraSwitcher mCameraSwitcher;
     @InjectView(R.id.camera_preview) FrameLayout mCameraPreviewWrapper;
 
-    private CameraWorker mCameraWorker;
     private CameraPreviewSurface mCameraPreview;
+    private int mCurrentFlashMode = FLASH_MODE_AUTO;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,19 +51,29 @@ public class MainActivity extends AppCompatActivity implements
         setContentView(R.layout.activity_main);
         ButterKnife.inject(this);
 
-        mCameraWorker = new CameraWorker(this);
-
         setupViews();
         onTryCamera();
     }
 
+    @Override
+    protected CameraWorker setupWorker() {
+        return new CameraWorker(this);
+    }
+
     private void setupViews() {
         mCaptureButton.setOnCaptureButtonListener(this);
-        mSwitchButton.setOnClickListener(new View.OnClickListener() {
+        mFlashSwitcher.setFlashModeListener(this);
+        mCameraSwitcher.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mSwitchButton.toggle();
+                mCameraSwitcher.toggle();
                 onChangeCamera();
+            }
+        });
+        mFlashSwitcher.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mFlashSwitcher.switchFlashMode();
             }
         });
     }
@@ -83,23 +96,20 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void onSetupPreview() {
-        mCameraWorker.setupPreview(new Runnable() {
+        mWorker.setupPreview(new Runnable() {
             @Override
             public void run() {
                 mCameraPreview = (CameraPreviewSurface) SharedMap.holder().get(KEY_CAMERA_PREVIEW);
                 if (mCameraPreview == null) return;
+                if (mCameraPreview.getParent() != null) return;
 
                 mCameraPreviewWrapper.addView(mCameraPreview);
-                mCaptureButton.show();
+
+                setupFlashMode();
+                setControlsEnabled(true);
                 animateOverlay(false);
             }
         });
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        mCameraWorker.onResume();
     }
 
     @Override
@@ -112,17 +122,11 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     @Override
-    public void onDestroy() {
-        super.onDestroy();
-        mCameraWorker.onDestroy();
-    }
-
-    @Override
     public void onFocused(Camera camera) {
-        mCameraWorker.takePicture(new Runnable() {
+        mWorker.takePicture(new Runnable() {
             @Override
             public void run() {
-
+                mCameraPreview.onPictureTaken();
             }
         });
     }
@@ -143,13 +147,18 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     @Override
+    public void onFlashModeChanged(int flashMode) {
+        mCurrentFlashMode = flashMode;
+        mWorker.setFlashMode(flashMode);
+    }
+
+    @Override
     public void onChangeCamera() {
+        setControlsEnabled(false);
         animateOverlay(true);
-        mCaptureButton.setEnabled(false);
-        mSwitchButton.setEnabled(false);
 
         mCameraPreviewWrapper.removeAllViews();
-        mCameraWorker.changeCamera(new Runnable() {
+        mWorker.changeCamera(new Runnable() {
             @Override
             public void run() {
                 onCameraChanged();
@@ -163,9 +172,27 @@ public class MainActivity extends AppCompatActivity implements
 
         mCameraPreviewWrapper.addView(mCameraPreview);
 
-        mCaptureButton.setEnabled(true);
-        mSwitchButton.setEnabled(true);
+        setupFlashMode();
+        setControlsEnabled(true);
         animateOverlay(false);
+    }
+
+    private void setupFlashMode() {
+        boolean hasFeature = mWorker.hasFlashFeature(null);
+
+        if (hasFeature) {
+            mWorker.setFlashMode(mCurrentFlashMode);
+            mFlashSwitcher.switchFlashModeTo(mCurrentFlashMode);
+        }
+
+        mFlashSwitcher.setEnabled(hasFeature);
+    }
+
+    private void setControlsEnabled(boolean enabled) {
+        mCaptureButton.show();
+        mFlashSwitcher.setClickable(false);
+        mCaptureButton.setEnabled(enabled);
+        mCameraSwitcher.setEnabled(enabled);
     }
 
     private void animateOverlay(boolean show) {
@@ -175,4 +202,5 @@ public class MainActivity extends AppCompatActivity implements
                 .setInterpolator(DECELERATE)
                 .start();
     }
+
 }

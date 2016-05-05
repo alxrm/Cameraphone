@@ -22,9 +22,15 @@ public class Animators {
     }
 
     public static ValueAnimator animateValue(float from, float to,
-                                    @NonNull TimeInterpolator interpolator,
-                                    @NonNull ValueAnimator.AnimatorUpdateListener listener) {
+                                             @NonNull TimeInterpolator interpolator,
+                                             @NonNull ValueAnimator.AnimatorUpdateListener listener) {
         return animateValue(from, to, 200, interpolator, listener);
+    }
+
+    public static ValueAnimator animateValue(long duration,
+                                             @NonNull TimeInterpolator interpolator,
+                                             @NonNull ValueAnimator.AnimatorUpdateListener listener) {
+        return animateValue(0, 1, duration, interpolator, listener);
     }
 
     public static ValueAnimator animateValue(float from, float to, long duration,
@@ -32,17 +38,6 @@ public class Animators {
                                              @NonNull ValueAnimator.AnimatorUpdateListener listener) {
         ValueAnimator animator = ValueAnimator.ofFloat(from, to);
         animator.setDuration(duration);
-        animator.setInterpolator(interpolator);
-        animator.addUpdateListener(listener);
-
-        return animator;
-    }
-
-
-    public static ValueAnimator animateValue(@NonNull TimeInterpolator interpolator,
-                                             @NonNull ValueAnimator.AnimatorUpdateListener listener) {
-        ValueAnimator animator = ValueAnimator.ofFloat(0, 1);
-        animator.setDuration(200);
         animator.setInterpolator(interpolator);
         animator.addUpdateListener(listener);
 

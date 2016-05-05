@@ -3,11 +3,9 @@ package com.rm.cameraphone.components;
 import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
 import android.content.Context;
-import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.util.AttributeSet;
 import android.view.Gravity;
@@ -18,8 +16,10 @@ import android.widget.ImageView;
 import com.rm.cameraphone.R;
 import com.rm.cameraphone.util.Animators;
 
-import static com.rm.cameraphone.constants.CameraSwitchButtonConstants.INDICATOR_INITIAL_RADIUS;
-import static com.rm.cameraphone.constants.CameraSwitchButtonConstants.INDICATOR_INITIAL_STROKE_WIDTH;
+import static com.rm.cameraphone.constants.CameraSwitcherConstants.INDICATOR_FILLED_RADIUS;
+import static com.rm.cameraphone.constants.CameraSwitcherConstants.INDICATOR_FILLED_STROKE_WIDTH;
+import static com.rm.cameraphone.constants.CameraSwitcherConstants.INDICATOR_INITIAL_RADIUS;
+import static com.rm.cameraphone.constants.CameraSwitcherConstants.INDICATOR_INITIAL_STROKE_WIDTH;
 import static com.rm.cameraphone.util.Animators.calculateAnimatedValue;
 import static com.rm.cameraphone.util.DimenUtils.dp;
 import static com.rm.cameraphone.util.Interpolators.DECELERATE;
@@ -27,7 +27,7 @@ import static com.rm.cameraphone.util.Interpolators.DECELERATE;
 /**
  * Created by alex
  */
-public class CameraSwitchButton extends FrameLayout {
+public class CameraSwitcher extends FrameLayout {
 
     private ImageView mRotatableIcon;
     private FrameLayout.LayoutParams mRotatableIconParams;
@@ -44,37 +44,29 @@ public class CameraSwitchButton extends FrameLayout {
 
     private boolean mIsFilled;
 
-    public CameraSwitchButton(Context context) {
+    public CameraSwitcher(Context context) {
         super(context);
         initialize();
     }
 
-    public CameraSwitchButton(Context context, AttributeSet attrs) {
+    public CameraSwitcher(Context context, AttributeSet attrs) {
         super(context, attrs);
         initialize();
     }
 
-    public CameraSwitchButton(Context context, AttributeSet attrs, int defStyleAttr) {
+    public CameraSwitcher(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         initialize();
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    public CameraSwitchButton(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+    public CameraSwitcher(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         initialize();
     }
 
     private void initialize() {
         setWillNotDraw(false);
-        final TypedArray typedArray = getContext().obtainStyledAttributes(new int[]{
-                R.attr.selectableItemBackgroundBorderless
-        });
-
-        final Drawable clickableBackground = typedArray.getDrawable(0);
-        typedArray.recycle();
-
-        setBackground(clickableBackground);
 
         mRotatableIcon = new ImageView(getContext());
         mRotatableIcon.setImageResource(R.drawable.camera_switch);
@@ -133,17 +125,17 @@ public class CameraSwitchButton extends FrameLayout {
     private void animateIndicator() {
         mIsFilled = !mIsFilled;
 
-        Animators.animateValue(0, 1, 400, DECELERATE, new ValueAnimator.AnimatorUpdateListener() {
+        Animators.animateValue(400, DECELERATE, new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 final float fraction = animation.getAnimatedFraction();
 
                 mIndicatorRadius = calculateAnimatedValue(
-                        dp(INDICATOR_INITIAL_RADIUS), dp(3), fraction, !mIsFilled
+                        dp(INDICATOR_INITIAL_RADIUS), dp(INDICATOR_FILLED_RADIUS), fraction, !mIsFilled
                 );
 
                 mIndicatorStrokeWidth = calculateAnimatedValue(
-                        dp(INDICATOR_INITIAL_STROKE_WIDTH), dp(INDICATOR_INITIAL_RADIUS), fraction, !mIsFilled
+                        dp(INDICATOR_INITIAL_STROKE_WIDTH), dp(INDICATOR_FILLED_STROKE_WIDTH), fraction, !mIsFilled
                 );
 
                 mIndicatorPaint.setStrokeWidth(mIndicatorStrokeWidth);

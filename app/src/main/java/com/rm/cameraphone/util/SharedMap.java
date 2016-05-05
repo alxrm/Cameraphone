@@ -3,15 +3,15 @@ package com.rm.cameraphone.util;
 import android.support.annotation.NonNull;
 
 import java.lang.ref.WeakReference;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by alex
  */
 public class SharedMap {
 
-    private static volatile ConcurrentHashMap<String, WeakReference<Object>> sDataPool = null;
+    private static volatile HashMap<String, WeakReference<Object>> sDataPool = null;
     private static volatile SharedMap sHolder = null;
 
     public static SharedMap holder() {
@@ -27,7 +27,7 @@ public class SharedMap {
     }
 
     private SharedMap() {
-        sDataPool = new ConcurrentHashMap<>();
+        sDataPool = new HashMap<>();
     }
 
     public synchronized void put(String key, @NonNull WeakReference<Object> value) {
