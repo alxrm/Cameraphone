@@ -7,13 +7,13 @@
     android:background="@android:color/black"
     tools:context=".ui.MainActivity">
 
-    <FrameLayout
+    <com.rm.cameraphone.components.SwipingFrameLayout
         android:id="@+id/camera_preview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         />
 
-    <com.rm.cameraphone.components.FlashSwitcher
+    <com.rm.cameraphone.components.camera.FlashSwitcher
         android:id="@+id/camera_flash_switcher"
         android:layout_width="32dp"
         android:layout_height="58dp"
@@ -32,20 +32,20 @@
         android:layout_height="match_parent"
         />
 
-    <com.rm.cameraphone.components.CaptureWrapper
+    <com.rm.cameraphone.components.camera.CaptureWrapper
         android:id="@+id/camera_capture_wrapper"
         android:layout_width="match_parent"
         android:layout_height="100dp"
         android:layout_alignParentBottom="true">
 
-        <com.rm.cameraphone.components.CaptureButton
+        <com.rm.cameraphone.components.camera.CaptureButton
             android:id="@+id/camera_capture_button"
             android:layout_width="86dp"
             android:layout_height="70dp"
             android:layout_centerInParent="true"
             />
 
-        <com.rm.cameraphone.components.CameraSwitcher
+        <com.rm.cameraphone.components.camera.CameraSwitcher
             android:id="@+id/camera_switcher"
             android:layout_width="48dp"
             android:layout_height="48dp"
@@ -57,6 +57,14 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             />
 
-    </com.rm.cameraphone.components.CaptureWrapper>
+    </com.rm.cameraphone.components.camera.CaptureWrapper>
+    
+    <com.rm.cameraphone.components.camera.SchemeIndicator
+        android:id="@+id/camera_indicator"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_above="@id/camera_capture_wrapper"
+        android:layout_centerHorizontal="true"
+        />
 
 </RelativeLayout>

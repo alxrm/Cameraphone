@@ -1,19 +1,22 @@
 package com.rm.cameraphone.ui;
 
 import android.Manifest;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.view.View;
-import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 
 import com.rm.cameraphone.R;
-import com.rm.cameraphone.components.CameraSwitcher;
-import com.rm.cameraphone.components.CaptureButton;
-import com.rm.cameraphone.components.CaptureWrapper;
-import com.rm.cameraphone.components.FlashSwitcher;
+import com.rm.cameraphone.components.SwipingFrameLayout;
 import com.rm.cameraphone.components.camera.CameraPreviewSurface;
+import com.rm.cameraphone.components.camera.CameraSwitcher;
+import com.rm.cameraphone.components.camera.CaptureButton;
+import com.rm.cameraphone.components.camera.CaptureWrapper;
+import com.rm.cameraphone.components.camera.FlashSwitcher;
+import com.rm.cameraphone.components.camera.SchemeIndicator;
 import com.rm.cameraphone.events.OnCameraFocusedListener;
 import com.rm.cameraphone.events.OnCaptureButtonListener;
 import com.rm.cameraphone.events.OnChangeCameraListener;
@@ -35,11 +38,12 @@ import static com.rm.cameraphone.constants.CaptureWrapperConstants.STATE_TRANSPA
 import static com.rm.cameraphone.constants.FlashSwitcherConstants.FLASH_MODE_AUTO;
 import static com.rm.cameraphone.constants.PermissionConstants.INITIAL_REQUEST;
 import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_PREVIEW;
-import static com.rm.cameraphone.util.DimenUtils.width;
 import static com.rm.cameraphone.util.Interpolators.DECELERATE;
 
 public class MainActivity extends BaseActivity<CameraWorker> implements
-        OnCaptureButtonListener, OnCameraFocusedListener, OnChangeCameraListener, OnFlashModeListener {
+        OnCaptureButtonListener, OnCameraFocusedListener,
+        OnChangeCameraListener, OnFlashModeListener,
+        OnSwipeListener {
 
     private static final String TAG = "MainActivity";
 
@@ -47,8 +51,9 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     @InjectView(R.id.camera_capture_wrapper) CaptureWrapper mCaptureWrapper;
     @InjectView(R.id.camera_capture_button) CaptureButton mCaptureButton;
     @InjectView(R.id.camera_flash_switcher) FlashSwitcher mFlashSwitcher;
+    @InjectView(R.id.camera_indicator) SchemeIndicator mSchemeIndicator;
     @InjectView(R.id.camera_switcher) CameraSwitcher mCameraSwitcher;
-    @InjectView(R.id.camera_preview) FrameLayout mCameraPreviewWrapper;
+    @InjectView(R.id.camera_preview) SwipingFrameLayout mCameraPreviewWrapper;
 
     private CameraPreviewSurface mCameraPreview;
     private int mCurrentFlashMode = FLASH_MODE_AUTO;
@@ -72,6 +77,8 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     private void setupViews() {
         mCaptureButton.setOnCaptureButtonListener(this);
         mFlashSwitcher.setFlashModeListener(this);
+        mCameraPreviewWrapper.setOnSwipeListener(this);
+        mCameraPreviewWrapper.setEnabled(false);
 
         mCameraSwitcher.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -88,54 +95,21 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
             }
         });
 
-        mCameraPreviewWrapper.setOnTouchListener(new OnSwipeListener() {
+        mSchemeIndicator.setIndicatorListener(new AnimatorListenerAdapter() {
+
             @Override
-            protected void onSwipeLeft(float distance) {
-                MainActivity.this.onSwipeLeft(distance);
+            public void onAnimationStart(Animator animation) {
+                super.onAnimationStart(animation);
+                mCameraPreviewWrapper.setEnabled(false);
             }
 
             @Override
-            protected void onSwipeRight(float distance) {
-                MainActivity.this.onSwipeRight(distance);
-            }
-
-            @Override
-            protected void onSwipeStopped(float distance, boolean toLeft) {
-                MainActivity.this.onSwipeStopped(distance, toLeft);
+            public void onAnimationEnd(Animator animation) {
+                super.onAnimationEnd(animation);
+                mCameraPreviewWrapper.setEnabled(true);
+                setControlsEnabled(true);
             }
         });
-    }
-
-    private void onSwipeStopped(float distance, boolean toLeft) {
-        final float wayFraction = distance / (width() / 2);
-
-        if (wayFraction > 0.7) {
-            if (mCurrentCameraMode == CAMERA_MODE_PHOTO && toLeft) {
-                mCurrentCameraMode = CAMERA_MODE_VIDEO;
-                mCaptureWrapper.animateToState(STATE_TRANSPARENT);
-                mCaptureButton.animateToState(STATE_VIDEO);
-            } else if (mCurrentCameraMode == CAMERA_MODE_VIDEO && !toLeft){
-                mCurrentCameraMode = CAMERA_MODE_PHOTO;
-                mCaptureWrapper.animateToState(STATE_OPAQUE);
-                mCaptureButton.animateToState(STATE_PHOTO);
-            }
-        }
-
-        animateOverlay(false);
-    }
-
-    private void onSwipeRight(float distance) {
-        if (mCurrentCameraMode == CAMERA_MODE_PHOTO) return;
-
-        final float wayFraction = distance / (width() / 2);
-        mPreviewOverlay.setAlpha(wayFraction);
-    }
-
-    private void onSwipeLeft(float distance) {
-        if (mCurrentCameraMode == CAMERA_MODE_VIDEO) return;
-
-        final float wayFraction = distance / (width() / 2);
-        mPreviewOverlay.setAlpha(wayFraction);
     }
 
     private void onTryCamera() {
@@ -150,7 +124,9 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (PermissionUtils.verifyPermissions(grantResults)) onSetupPreview();
     }
@@ -163,6 +139,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
                 if (mCameraPreview == null) return;
                 if (mCameraPreview.getParent() != null) return;
 
+                mCameraPreviewWrapper.setEnabled(true);
                 mCameraPreviewWrapper.addView(mCameraPreview);
 
                 setupFlashMode();
@@ -186,25 +163,33 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mWorker.takePicture(new Runnable() {
             @Override
             public void run() {
-                mCameraPreview.onPictureTaken();
+                mCameraPreviewWrapper.setEnabled(true);
+                setControlsEnabled(true);
             }
         });
     }
 
     @Override
     public void onStartRecord() {
+        mCameraPreviewWrapper.setEnabled(false);
+        mSchemeIndicator.hide();
         mCameraSwitcher.hide();
         mCaptureWrapper.hide();
     }
 
     @Override
     public void onStopRecord() {
+        mCameraPreviewWrapper.setEnabled(true);
+        mSchemeIndicator.show();
         mCameraSwitcher.show();
         mCaptureWrapper.show();
     }
 
     @Override
     public void onCapture() {
+        mCameraPreviewWrapper.setEnabled(false);
+        setControlsEnabled(false);
+
         mCameraPreview.takePicture();
     }
 
@@ -219,7 +204,9 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         setControlsEnabled(false);
         animateOverlay(true);
 
+        mCameraPreviewWrapper.setEnabled(false);
         mCameraPreviewWrapper.removeAllViews();
+
         mWorker.changeCamera(new Runnable() {
             @Override
             public void run() {
@@ -233,10 +220,52 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mCameraPreview = (CameraPreviewSurface) SharedMap.holder().get(KEY_CAMERA_PREVIEW);
 
         mCameraPreviewWrapper.addView(mCameraPreview);
+        mCameraPreviewWrapper.setEnabled(true);
 
         setupFlashMode();
         setControlsEnabled(true);
         animateOverlay(false);
+    }
+
+    @Override
+    public void onSwipeStopped(float fraction, boolean toLeft) {
+        final boolean overThreshold = fraction > 0.5;
+        final boolean exactToLeft = mCurrentCameraMode == CAMERA_MODE_PHOTO && toLeft;
+        final boolean exactToRight = mCurrentCameraMode == CAMERA_MODE_VIDEO && !toLeft;
+
+        if (exactToLeft) {
+            mSchemeIndicator.animateToState(overThreshold, fraction);
+        } else if (exactToRight) {
+            mSchemeIndicator.animateToState(!overThreshold, fraction);
+        }
+
+        if (overThreshold) {
+            if (exactToLeft) {
+                mCurrentCameraMode = CAMERA_MODE_VIDEO;
+                mCaptureWrapper.animateToState(STATE_TRANSPARENT);
+                mCaptureButton.animateToState(STATE_VIDEO);
+            } else if (exactToRight) {
+                mCurrentCameraMode = CAMERA_MODE_PHOTO;
+                mCaptureWrapper.animateToState(STATE_OPAQUE);
+                mCaptureButton.animateToState(STATE_PHOTO);
+            }
+        }
+    }
+
+    @Override
+    public void onSwipeRight(float fraction) {
+        if (mCurrentCameraMode == CAMERA_MODE_PHOTO) return;
+
+        mSchemeIndicator.setFraction(fraction, true);
+        setControlsEnabled(false);
+    }
+
+    @Override
+    public void onSwipeLeft(float fraction) {
+        if (mCurrentCameraMode == CAMERA_MODE_VIDEO) return;
+
+        mSchemeIndicator.setFraction(fraction, false);
+        setControlsEnabled(false);
     }
 
     private void setupFlashMode() {
@@ -252,7 +281,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
 
     private void setControlsEnabled(boolean enabled) {
         mCaptureButton.show();
-        mFlashSwitcher.setClickable(false);
+        mFlashSwitcher.setClickable(enabled);
         mCaptureButton.setEnabled(enabled);
         mCameraSwitcher.setEnabled(enabled);
     }

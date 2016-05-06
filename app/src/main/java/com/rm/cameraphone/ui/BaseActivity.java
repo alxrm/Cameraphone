@@ -8,9 +8,9 @@ import com.rm.cameraphone.worker.BaseWorker;
 /**
  * Created by alex
  */
-public abstract class BaseActivity<T extends BaseWorker> extends AppCompatActivity {
+public abstract class BaseActivity<W extends BaseWorker> extends AppCompatActivity {
 
-    protected T mWorker;
+    protected W mWorker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -18,7 +18,7 @@ public abstract class BaseActivity<T extends BaseWorker> extends AppCompatActivi
         mWorker = setupWorker();
     }
 
-    protected abstract T setupWorker();
+    protected abstract W setupWorker();
 
     @Override
     protected void onResume() {

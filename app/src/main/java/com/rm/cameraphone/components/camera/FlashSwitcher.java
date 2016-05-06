@@ -1,4 +1,4 @@
-package com.rm.cameraphone.components;
+package com.rm.cameraphone.components.camera;
 
 import android.annotation.TargetApi;
 import android.content.Context;

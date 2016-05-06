@@ -46,12 +46,13 @@ public class CameraWorker extends BaseWorker {
     Camera.PictureCallback mPicture = new Camera.PictureCallback() {
         @Override
         public void onPictureTaken(byte[] data, Camera camera) {
-            camera.startPreview();
+            mCameraPreview.onPictureTaken();
 
             File pictureFile = getOutputMediaFile();
             if (pictureFile == null) {
                 return;
             }
+
             try {
                 FileOutputStream fos = new FileOutputStream(pictureFile);
                 fos.write(data);

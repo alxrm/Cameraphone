@@ -1,4 +1,4 @@
-package com.rm.cameraphone.components;
+package com.rm.cameraphone.components.camera;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -310,21 +310,21 @@ public class CaptureButton extends View {
         boolean toPhoto = mCurrentState == STATE_PHOTO;
         int fillColorTo = toPhoto ? ColorConstants.COLOR_ACCENT : Color.WHITE;
 
-        final int shapeTopMemo = (int) mFillShape.top;
-        final int shapeBottomMemo = (int) mFillShape.bottom;
-        final int shapeLeftMemo = (int) mFillShape.left;
-        final int shapeRightMemo = (int) mFillShape.right;
+        final float shapeTopMemo = mFillShape.top;
+        final float shapeBottomMemo = mFillShape.bottom;
+        final float shapeLeftMemo = mFillShape.left;
+        final float shapeRightMemo = mFillShape.right;
 
-        final int shapeTop;
-        final int shapeBottom;
-        final int shapeLeft;
-        final int shapeRight;
+        final float shapeTop;
+        final float shapeBottom;
+        final float shapeLeft;
+        final float shapeRight;
 
         if (toHide) {
-            shapeLeft = (int) mCenterX;
-            shapeRight = (int) mCenterX;
-            shapeTop = (int) mCenterY;
-            shapeBottom = (int) mCenterY;
+            shapeLeft = mCenterX;
+            shapeRight = mCenterX;
+            shapeTop = mCenterY;
+            shapeBottom = mCenterY;
         } else {
             shapeLeft = toPhoto ? dp(SHAPE_LEFT_PHOTO) : dp(SHAPE_LEFT_VIDEO);
             shapeRight = toPhoto ? dp(SHAPE_RIGHT_PHOTO) : dp(SHAPE_RIGHT_VIDEO);
@@ -385,6 +385,7 @@ public class CaptureButton extends View {
 
     private void animateGone(boolean reverse) {
         animateRecord(true);
+        setEnabled(!reverse);
         animate()
                 .scaleX(reverse ? 1 : 0)
                 .scaleY(reverse ? 1 : 0)

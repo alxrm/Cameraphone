@@ -209,10 +209,10 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
     private void clearCameraFocus() {
         if (mHasAutoFocus) {
             mCamera.cancelAutoFocus();
-            stopPreview();
-
-            startPreview(getHolder());
         }
+
+        stopPreview();
+        startPreview(getHolder());
     }
 
     private int getScreenOrientation() {
