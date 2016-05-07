@@ -18,6 +18,7 @@ import com.rm.cameraphone.components.camera.CaptureButton;
 import com.rm.cameraphone.components.camera.CaptureWrapper;
 import com.rm.cameraphone.components.camera.FlashSwitcher;
 import com.rm.cameraphone.components.camera.SchemeIndicator;
+import com.rm.cameraphone.components.camera.TimingView;
 import com.rm.cameraphone.events.OnCameraFocusedListener;
 import com.rm.cameraphone.events.OnCaptureButtonListener;
 import com.rm.cameraphone.events.OnChangeCameraListener;
@@ -54,6 +55,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     @InjectView(R.id.camera_flash_switcher) FlashSwitcher mFlashSwitcher;
     @InjectView(R.id.camera_indicator) SchemeIndicator mSchemeIndicator;
     @InjectView(R.id.camera_switcher) CameraSwitcher mCameraSwitcher;
+    @InjectView(R.id.camera_timer) TimingView mCameraTimer;
     @InjectView(R.id.camera_preview) SwipingFrameLayout mCameraPreviewWrapper;
 
     private CameraPreviewSurface mCameraPreview;
@@ -181,11 +183,19 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mSchemeIndicator.hide();
         mCameraSwitcher.hide();
         mCaptureWrapper.hide();
+        mFlashSwitcher.hide();
 
         mWorker.startVideoCapturing(new Runnable() {
             @Override
             public void run() {
                 Log.d(TAG, "VIDEO CAPTURE STARTED");
+                mCameraTimer.start();
+            }
+        }, new Runnable() {
+            @Override
+            public void run() {
+                if (mCaptureButton.isRecording()) mCaptureButton.animateRecord(true);
+                onStopRecord();
             }
         });
     }
@@ -196,11 +206,13 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mSchemeIndicator.show();
         mCameraSwitcher.show();
         mCaptureWrapper.show();
+        mFlashSwitcher.show();
 
         mWorker.stopVideoCapturing(new Runnable() {
             @Override
             public void run() {
                 Log.d(TAG, "VIDEO CAPTURE STOPPED");
+                mCameraTimer.stop();
             }
         });
     }

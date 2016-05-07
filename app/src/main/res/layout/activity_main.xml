@@ -20,7 +20,7 @@
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentTop="true"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="20dp"
         android:layout_marginRight="16dp"
         android:layout_marginEnd="16dp"
         />
@@ -58,6 +58,13 @@
             />
 
     </com.rm.cameraphone.components.camera.CaptureWrapper>
+
+    <com.rm.cameraphone.components.camera.TimingView
+        android:id="@+id/camera_timer"
+        android:layout_width="58dp"
+        android:layout_height="26dp"
+        android:layout_centerHorizontal="true"
+        android:alpha="0"/>
     
     <com.rm.cameraphone.components.camera.SchemeIndicator
         android:id="@+id/camera_indicator"

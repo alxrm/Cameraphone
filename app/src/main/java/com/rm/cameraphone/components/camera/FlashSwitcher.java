@@ -1,5 +1,7 @@
 package com.rm.cameraphone.components.camera;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Build;
@@ -17,6 +19,7 @@ import com.rm.cameraphone.events.OnFlashModeListener;
 import static com.rm.cameraphone.constants.FlashSwitcherConstants.FLASH_MODE_AUTO;
 import static com.rm.cameraphone.constants.FlashSwitcherConstants.FLASH_MODE_OFF;
 import static com.rm.cameraphone.constants.FlashSwitcherConstants.FLASH_MODE_ON;
+import static com.rm.cameraphone.util.Interpolators.DECELERATE;
 
 /**
  * Created by alex
@@ -155,6 +158,14 @@ public class FlashSwitcher extends FrameLayout {
         if (icons != null) icons[0].setImageResource(R.drawable.flash_off);
     }
 
+    public void hide() {
+        animateGone(true);
+    }
+
+    public void show() {
+        animateGone(false);
+    }
+
     /**
      * @return ImageView[], where 0 is visible, 1 is not visible
      */
@@ -180,6 +191,27 @@ public class FlashSwitcher extends FrameLayout {
 
         if (mFlashModeListener != null)
             mFlashModeListener.onFlashModeChanged(mFlashMode);
+    }
+
+    private void animateGone(final boolean toHide) {
+        animate()
+                .alpha(toHide ? 0 : 1)
+                .setDuration(200)
+                .setInterpolator(DECELERATE)
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationStart(Animator animation) {
+                        super.onAnimationStart(animation);
+                        if (!toHide) setVisibility(VISIBLE);
+                    }
+
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        super.onAnimationEnd(animation);
+                        if (toHide) setVisibility(GONE);
+                    }
+                })
+                .start();
     }
 
     public void setFlashModeListener(OnFlashModeListener flashModeListener) {

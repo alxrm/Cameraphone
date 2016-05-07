@@ -22,9 +22,11 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.List;
 
+import static com.rm.cameraphone.constants.CameraConstants.MAX_VIDEO_DURATION;
 import static com.rm.cameraphone.constants.FileContants.OUTPUT_PHOTO;
 import static com.rm.cameraphone.constants.FileContants.OUTPUT_VIDEO;
 import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_PREVIEW;
+import static com.rm.cameraphone.util.DispatchUtils.postDelayed;
 import static com.rm.cameraphone.util.DispatchUtils.runOnUiThread;
 
 /**
@@ -41,10 +43,10 @@ public class CameraWorker extends BaseWorker {
     private SparseArray<Camera.Parameters> mParameters;
 
     private MediaRecorder mMediaRecorder;
-    private File mVideoOutputFile;
 
+    private File mCurOutputFile;
     private int mCurCameraId;
-    private int mCameraMode;
+    private int mCurCameraMode;
     private boolean mUsingFrontCamera;
 
     private Runnable mTaskSetupPreview;
@@ -54,6 +56,7 @@ public class CameraWorker extends BaseWorker {
     private Runnable mTaskVideoCaptureStop;
 
     private Camera.PictureCallback mOnPictureTaken;
+    private Runnable mStopVideoHook;
 
     public CameraWorker(Activity host) {
         super(host);
@@ -174,14 +177,16 @@ public class CameraWorker extends BaseWorker {
             @Override
             public void run() {
                 try {
-                    mMediaRecorder.stop();
+                    if (mMediaRecorder != null) {
+                        mMediaRecorder.stop();
+                    }
                 } catch (RuntimeException e) { // the only one solution, srsly
-                    if (mVideoOutputFile != null && mVideoOutputFile.delete()) {
+                    if (mCurOutputFile != null && mCurOutputFile.delete()) {
                         Log.d("CameraWorker", "Deleted temp video file");
                     }
-
                     e.printStackTrace();
                 } finally {
+                    mCurOutputFile = null;
                     releaseMediaRecorder();
                     mCamera.lock();
                 }
@@ -267,8 +272,8 @@ public class CameraWorker extends BaseWorker {
         mCamera.setParameters(parameters);
     }
 
-    public void setCameraMode(int cameraMode) {
-        mCameraMode = cameraMode;
+    public void setCurCameraMode(int curCameraMode) {
+        mCurCameraMode = curCameraMode;
     }
 
     public boolean hasFlashFeature(String flashFeature) {
@@ -286,12 +291,14 @@ public class CameraWorker extends BaseWorker {
             public void run() {
                 mTaskTakePicture.run();
 
-                runOnUiThread(mainThreadCallback);
+                postDelayed(mainThreadCallback, 1000);
             }
         });
     }
 
-    public void startVideoCapturing(final Runnable mainThreadCallback) {
+    public void startVideoCapturing(final Runnable mainThreadCallback, Runnable stopVideoHook) {
+        mStopVideoHook = stopVideoHook;
+
         DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
             @Override
             public void run() {
@@ -331,8 +338,8 @@ public class CameraWorker extends BaseWorker {
     }
 
     private synchronized boolean prepareVideoRecorder() {
-        mVideoOutputFile = FileUtils.generateOutputFile(OUTPUT_VIDEO);
-        if (mVideoOutputFile == null) return false;
+        mCurOutputFile = FileUtils.generateOutputFile(OUTPUT_VIDEO);
+        if (mCurOutputFile == null) return false;
 
         mCamera.unlock();
 
@@ -342,9 +349,19 @@ public class CameraWorker extends BaseWorker {
         mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
         mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
         mMediaRecorder.setProfile(CamcorderProfile.get(mCurCameraId, CamcorderProfile.QUALITY_HIGH));
-        mMediaRecorder.setOutputFile(mVideoOutputFile.toString());
+        mMediaRecorder.setOutputFile(mCurOutputFile.toString());
         mMediaRecorder.setPreviewDisplay(mCameraPreview.getHolder().getSurface());
+        mMediaRecorder.setMaxDuration(MAX_VIDEO_DURATION);
         mMediaRecorder.setOrientationHint(mCurCameraId == Camera.CameraInfo.CAMERA_FACING_BACK ? 90 : 270);
+
+        mMediaRecorder.setOnInfoListener(new MediaRecorder.OnInfoListener() {
+            @Override
+            public void onInfo(MediaRecorder mr, int what, int extra) {
+                if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
+                    DispatchUtils.runOnUiThread(mStopVideoHook);
+                }
+            }
+        });
 
         try {
             mMediaRecorder.prepare();
