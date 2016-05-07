@@ -12,14 +12,20 @@ import com.rm.cameraphone.util.DispatchUtils;
 public class Cameraphone extends Application {
 
     private static Context sContext;
+    private static String sAppName;
 
     @Override
     public void onCreate() {
         super.onCreate();
         sContext = this;
+        sAppName = "Cameraphone";
 
         DispatchUtils.init();
         DimenUtils.init(this);
+    }
+
+    public static String getAppName() {
+        return sAppName;
     }
 
     public static Context getContext() {

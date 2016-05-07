@@ -49,6 +49,7 @@ public class CaptureWrapper extends RelativeLayout {
 
     private void initialize() {
         setWillNotDraw(false);
+        mCurrentState = STATE_OPAQUE;
 
         mBackgroundView = new View(getContext());
         mBackgroundView.setLayoutParams(new ViewGroup.LayoutParams(

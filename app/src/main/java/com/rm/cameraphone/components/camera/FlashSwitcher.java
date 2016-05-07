@@ -169,9 +169,12 @@ public class FlashSwitcher extends FrameLayout {
     }
 
     private void animateState() {
+        if (!isClickable()) return;
+
         mIcons = getIconsByVisibility();
         if (mIcons == null) return;
 
+        setClickable(false);
         mIcons[0].startAnimation(mAnimationToBottom);
         mIcons[1].startAnimation(mAnimationFromTop);
 

@@ -6,6 +6,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.util.Log;
 import android.view.View;
 import android.widget.RelativeLayout;
 
@@ -113,7 +114,12 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     }
 
     private void onTryCamera() {
-        final String[] permissionsNeeded = { Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE };
+        final String[] permissionsNeeded = {
+                Manifest.permission.CAMERA,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.RECORD_AUDIO
+        };
+
         final boolean hasPermission = PermissionUtils.checkAll(this, permissionsNeeded);
 
         if (hasPermission) {
@@ -175,6 +181,13 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mSchemeIndicator.hide();
         mCameraSwitcher.hide();
         mCaptureWrapper.hide();
+
+        mWorker.startVideoCapturing(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "VIDEO CAPTURE STARTED");
+            }
+        });
     }
 
     @Override
@@ -183,10 +196,19 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mSchemeIndicator.show();
         mCameraSwitcher.show();
         mCaptureWrapper.show();
+
+        mWorker.stopVideoCapturing(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "VIDEO CAPTURE STOPPED");
+            }
+        });
     }
 
     @Override
     public void onCapture() {
+        if (mCameraPreview == null) return;
+
         mCameraPreviewWrapper.setEnabled(false);
         setControlsEnabled(false);
 

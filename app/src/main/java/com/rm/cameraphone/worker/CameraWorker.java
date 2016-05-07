@@ -1,25 +1,29 @@
 package com.rm.cameraphone.worker;
 
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.hardware.Camera;
-import android.os.Environment;
+import android.media.CamcorderProfile;
+import android.media.MediaRecorder;
 import android.util.Log;
 import android.util.SparseArray;
 
 import com.rm.cameraphone.components.camera.CameraPreviewSurface;
 import com.rm.cameraphone.constants.FlashSwitcherConstants;
 import com.rm.cameraphone.events.OnCameraFocusedListener;
+import com.rm.cameraphone.util.Bitmaps;
 import com.rm.cameraphone.util.DispatchUtils;
+import com.rm.cameraphone.util.FileUtils;
 import com.rm.cameraphone.util.SharedMap;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 
+import static com.rm.cameraphone.constants.FileContants.OUTPUT_PHOTO;
+import static com.rm.cameraphone.constants.FileContants.OUTPUT_VIDEO;
 import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_PREVIEW;
 import static com.rm.cameraphone.util.DispatchUtils.runOnUiThread;
 
@@ -36,53 +40,20 @@ public class CameraWorker extends BaseWorker {
 
     private SparseArray<Camera.Parameters> mParameters;
 
+    private MediaRecorder mMediaRecorder;
+    private File mVideoOutputFile;
+
     private int mCurCameraId;
+    private int mCameraMode;
     private boolean mUsingFrontCamera;
 
     private Runnable mTaskSetupPreview;
     private Runnable mTaskClearPreview;
     private Runnable mTaskTakePicture;
+    private Runnable mTaskVideoCaptureStart;
+    private Runnable mTaskVideoCaptureStop;
 
-    Camera.PictureCallback mPicture = new Camera.PictureCallback() {
-        @Override
-        public void onPictureTaken(byte[] data, Camera camera) {
-            mCameraPreview.onPictureTaken();
-
-            File pictureFile = getOutputMediaFile();
-            if (pictureFile == null) {
-                return;
-            }
-
-            try {
-                FileOutputStream fos = new FileOutputStream(pictureFile);
-                fos.write(data);
-                fos.close();
-            } catch (IOException e) {
-                Log.e(TAG, e.getMessage());
-            }
-        }
-    };
-
-    private static File getOutputMediaFile() {
-        File mediaStorageDir = new File(
-                Environment
-                        .getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
-                "MyCameraApp");
-        if (!mediaStorageDir.exists()) {
-            if (!mediaStorageDir.mkdirs()) {
-                Log.d("MyCameraApp", "failed to create directory");
-                return null;
-            }
-        }
-        // Create a media file name
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss")
-                .format(new Date());
-        File mediaFile;
-        mediaFile = new File(mediaStorageDir.getPath() + File.separator
-                + "IMG_" + timeStamp + ".jpg");
-
-        return mediaFile;
-    }
+    private Camera.PictureCallback mOnPictureTaken;
 
     public CameraWorker(Activity host) {
         super(host);
@@ -95,6 +66,13 @@ public class CameraWorker extends BaseWorker {
         mTaskSetupPreview = registerTaskSetupPreview();
         mTaskClearPreview = registerTaskClearPreview();
         mTaskTakePicture = registerTaskTakePicture();
+        mTaskVideoCaptureStart = registerTaskVideoCaptureStart();
+        mTaskVideoCaptureStop = registerTaskVideoCaptureStop();
+    }
+
+    @Override
+    protected void registerCallbacks() {
+        mOnPictureTaken = registerCallbackPictureTaken();
     }
 
     @Override
@@ -115,6 +93,7 @@ public class CameraWorker extends BaseWorker {
 
     @Override
     public void onDestroy() {
+        releaseMediaRecorder();
         if (mCamera != null) {
             mCamera.release();
             mCamera = null;
@@ -122,6 +101,8 @@ public class CameraWorker extends BaseWorker {
     }
 
     /* IMPLEMENTATION PART */
+
+    // registering runnable tasks
     private Runnable registerTaskSetupPreview() {
         return new Runnable() {
             @Override
@@ -171,7 +152,70 @@ public class CameraWorker extends BaseWorker {
             @Override
             public void run() {
                 Log.d(TAG, "TAKE PICTURE");
-                mCamera.takePicture(null, null, mPicture);
+                mCamera.takePicture(null, null, mOnPictureTaken);
+            }
+        };
+    }
+
+    private Runnable registerTaskVideoCaptureStart() {
+        return new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "CAPTURE VIDEO");
+
+                if (prepareVideoRecorder()) mMediaRecorder.start();
+                else releaseMediaRecorder();
+            }
+        };
+    }
+
+    private Runnable registerTaskVideoCaptureStop() {
+        return new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    mMediaRecorder.stop();
+                } catch (RuntimeException e) { // the only one solution, srsly
+                    if (mVideoOutputFile != null && mVideoOutputFile.delete()) {
+                        Log.d("CameraWorker", "Deleted temp video file");
+                    }
+
+                    e.printStackTrace();
+                } finally {
+                    releaseMediaRecorder();
+                    mCamera.lock();
+                }
+            }
+        };
+    }
+
+    private Runnable registerTaskWriteFile(final byte[] data) {
+        return new Runnable() {
+            @Override
+            public void run() {
+                File pictureFile = FileUtils.generateOutputFile(OUTPUT_PHOTO);
+                if (pictureFile == null) return;
+
+
+                if (mCurCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                    Bitmap image = BitmapFactory.decodeByteArray(data, 0, data.length);
+                    image = Bitmaps.rotateBitmap(image, 180); // revert vertical mirroring
+                    FileUtils.writeBitmapToDevice(image, pictureFile);
+                } else {
+                    FileUtils.writeFileToDevice(data, pictureFile);
+                }
+            }
+        };
+    }
+
+    // registering callbacks
+    private Camera.PictureCallback registerCallbackPictureTaken() {
+        return new Camera.PictureCallback() {
+            @Override
+            public void onPictureTaken(byte[] data, Camera camera) {
+                if (mCameraPreview != null) mCameraPreview.onPictureTaken();
+
+                DispatchUtils.getFileQueue().postRunnable(registerTaskWriteFile(data));
             }
         };
     }
@@ -223,6 +267,10 @@ public class CameraWorker extends BaseWorker {
         mCamera.setParameters(parameters);
     }
 
+    public void setCameraMode(int cameraMode) {
+        mCameraMode = cameraMode;
+    }
+
     public boolean hasFlashFeature(String flashFeature) {
         if (mCamera == null) return false;
         if (flashFeature == null) flashFeature = Camera.Parameters.FLASH_MODE_AUTO;
@@ -237,6 +285,28 @@ public class CameraWorker extends BaseWorker {
             @Override
             public void run() {
                 mTaskTakePicture.run();
+
+                runOnUiThread(mainThreadCallback);
+            }
+        });
+    }
+
+    public void startVideoCapturing(final Runnable mainThreadCallback) {
+        DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                mTaskVideoCaptureStart.run();
+
+                runOnUiThread(mainThreadCallback);
+            }
+        });
+    }
+
+    public void stopVideoCapturing(final Runnable mainThreadCallback) {
+        DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                mTaskVideoCaptureStop.run();
 
                 runOnUiThread(mainThreadCallback);
             }
@@ -258,6 +328,46 @@ public class CameraWorker extends BaseWorker {
         Camera.getCameraInfo(cameraId, cameraInfo);
 
         return cameraInfo;
+    }
+
+    private synchronized boolean prepareVideoRecorder() {
+        mVideoOutputFile = FileUtils.generateOutputFile(OUTPUT_VIDEO);
+        if (mVideoOutputFile == null) return false;
+
+        mCamera.unlock();
+
+        mMediaRecorder = new MediaRecorder();
+        mMediaRecorder.setCamera(mCamera);
+
+        mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
+        mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+        mMediaRecorder.setProfile(CamcorderProfile.get(mCurCameraId, CamcorderProfile.QUALITY_HIGH));
+        mMediaRecorder.setOutputFile(mVideoOutputFile.toString());
+        mMediaRecorder.setPreviewDisplay(mCameraPreview.getHolder().getSurface());
+        mMediaRecorder.setOrientationHint(mCurCameraId == Camera.CameraInfo.CAMERA_FACING_BACK ? 90 : 270);
+
+        try {
+            mMediaRecorder.prepare();
+        } catch (IllegalStateException e) {
+            Log.d(TAG, "IllegalStateException preparing MediaRecorder: " + e.getMessage());
+            releaseMediaRecorder();
+            return false;
+        } catch (IOException e) {
+            Log.d(TAG, "IOException preparing MediaRecorder: " + e.getMessage());
+            releaseMediaRecorder();
+            return false;
+        }
+
+        return true;
+    }
+
+    private void releaseMediaRecorder(){
+        if (mMediaRecorder != null) {
+            mMediaRecorder.reset();
+            mMediaRecorder.release();
+            mMediaRecorder = null;
+            mCamera.lock();
+        }
     }
 
     private int getCameraId(boolean useFrontCamera) {

@@ -74,7 +74,6 @@ public class SwipingFrameLayout extends FrameLayout {
         float wayFraction = Math.abs(way) / (mScreenWidth / 2);
         wayFraction = wayFraction > 1 ? 1 : wayFraction;
 
-
         if (!isDown) {
             mOnSwipeListener.onSwipeStopped(wayFraction, toLeft);
             return;

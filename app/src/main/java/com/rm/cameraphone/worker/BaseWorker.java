@@ -10,10 +10,14 @@ public abstract class BaseWorker {
 
     public BaseWorker(Activity host) {
         mHost = host;
+
         registerTasks();
+        registerCallbacks();
     }
 
     protected abstract void registerTasks();
+
+    protected abstract void registerCallbacks();
 
     public abstract void onResume();
 

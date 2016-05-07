@@ -42,6 +42,7 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
     private SurfaceHolder mHolder;
     private Runnable mTaskStartPreview;
     private Runnable mTaskStopPreview;
+    private Runnable mTaskAutoFocus;
 
     private int mDisplayOrientation;
     private boolean mHasAutoFocus;
@@ -59,7 +60,7 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
 
         List<String> supportedFocusModes = camera.getParameters().getSupportedFocusModes();
         mHasAutoFocus = supportedFocusModes != null && supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO);
-        mHasContiniousFocus = supportedFocusModes != null && supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+        mHasContiniousFocus = supportedFocusModes != null && supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
 
         mDisplayOrientation = getScreenOrientation();
 
@@ -80,6 +81,7 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
     private void registerTasks() {
         mTaskStartPreview = registerTaskStartPreview();
         mTaskStopPreview = registerTaskStopPreview();
+        mTaskAutoFocus = registerTaskAutoFocus();
     }
 
     @Override
@@ -144,7 +146,7 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
                     Camera.Parameters parameters = mCamera.getParameters();
 
                     if (mHasContiniousFocus)
-                        parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+                        parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
                     else if (mHasAutoFocus)
                         parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
 
@@ -174,6 +176,16 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
         };
     }
 
+    private Runnable registerTaskAutoFocus() {
+        return new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "AUTO FOCUS");
+                mCamera.autoFocus(CameraPreviewSurface.this);
+            }
+        };
+    }
+
     public void takePicture() {
         if (mHasAutoFocus) {
             startFocusing();
@@ -197,7 +209,7 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
     }
 
     private void startFocusing() {
-        mCamera.autoFocus(this);
+        DispatchUtils.getCameraQueue().postRunnable(mTaskAutoFocus);
     }
 
     private void focused() {
