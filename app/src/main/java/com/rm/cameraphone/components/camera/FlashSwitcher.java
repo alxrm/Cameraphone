@@ -153,9 +153,6 @@ public class FlashSwitcher extends FrameLayout {
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
         setAlpha(enabled ? 1F : 0.5F);
-
-        ImageView[] icons = getIconsByVisibility();
-        if (icons != null) icons[0].setImageResource(R.drawable.flash_off);
     }
 
     public void hide() {
@@ -195,7 +192,7 @@ public class FlashSwitcher extends FrameLayout {
 
     private void animateGone(final boolean toHide) {
         animate()
-                .alpha(toHide ? 0 : 1)
+                .alpha(toHide ? 0 : isEnabled() ? 1 : 0.5F)
                 .setDuration(200)
                 .setInterpolator(DECELERATE)
                 .setListener(new AnimatorListenerAdapter() {

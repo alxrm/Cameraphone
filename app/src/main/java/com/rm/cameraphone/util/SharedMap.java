@@ -4,6 +4,7 @@ import android.support.annotation.NonNull;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -42,14 +43,20 @@ public class SharedMap {
         return null;
     }
 
+    public synchronized void remove(String key) {
+        sDataPool.remove(key);
+        flush();
+    }
+
     public synchronized void clear() {
         sDataPool.clear();
     }
 
     private void flush() {
-        for (Map.Entry<String, WeakReference<Object>> entry : sDataPool.entrySet()) {
-            if (entry.getValue().get() == null) {
-                sDataPool.remove(entry.getKey());
+        for(Iterator<Map.Entry<String, WeakReference<Object>>> it = sDataPool.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<String, WeakReference<Object>> entry = it.next();
+            if(entry.getValue().get() == null) {
+                it.remove();
             }
         }
     }

@@ -385,7 +385,7 @@ public class CaptureButton extends View {
 
     private void animateGone(boolean reverse) {
         animateRecord(true);
-        setEnabled(!reverse);
+        setEnabled(reverse);
         animate()
                 .scaleX(reverse ? 1 : 0)
                 .scaleY(reverse ? 1 : 0)

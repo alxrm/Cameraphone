@@ -24,4 +24,6 @@ public abstract class BaseWorker {
     public abstract void onPause();
 
     public abstract void onDestroy();
+
+    public abstract void onTrimMemory();
 }

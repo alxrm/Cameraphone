@@ -46,8 +46,6 @@ public class FileUtils {
             }
         }
 
-        addFileToSystemMedia(outputFile);
-
         return outputFile;
     }
 
@@ -68,14 +66,14 @@ public class FileUtils {
 
         try {
             FileOutputStream fos = new FileOutputStream(outputPath);
-            target.compress(Bitmap.CompressFormat.PNG, 100, fos);
+            target.compress(Bitmap.CompressFormat.JPEG, 100, fos);
             fos.close();
         } catch (IOException e) {
             Log.e(TAG, e.getMessage());
         }
     }
 
-    private static void addFileToSystemMedia(File target) {
+    public static void addFileToSystemMedia(File target) {
         MediaScannerConnection.scanFile(
                 Cameraphone.getContext(),
                 new String[] { target.getAbsolutePath() },

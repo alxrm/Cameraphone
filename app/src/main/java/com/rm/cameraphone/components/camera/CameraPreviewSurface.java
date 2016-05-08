@@ -60,7 +60,7 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
 
         List<String> supportedFocusModes = camera.getParameters().getSupportedFocusModes();
         mHasAutoFocus = supportedFocusModes != null && supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO);
-        mHasContiniousFocus = supportedFocusModes != null && supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+        mHasContiniousFocus = supportedFocusModes != null && supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
 
         mDisplayOrientation = getScreenOrientation();
 
@@ -187,7 +187,7 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
     }
 
     public void takePicture() {
-        if (mHasAutoFocus) {
+        if (mHasAutoFocus || mHasContiniousFocus) {
             startFocusing();
         } else {
             focused();

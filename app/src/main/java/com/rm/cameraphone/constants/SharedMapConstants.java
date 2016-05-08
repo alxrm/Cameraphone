@@ -5,5 +5,5 @@ package com.rm.cameraphone.constants;
  */
 public interface SharedMapConstants {
     String KEY_CAMERA_PREVIEW = "md5_camera_preview";
-    String KEY_SURFACE_HOLDER = "md5_surface_holder";
+    String KEY_CAMERA_SHOT_PATH = "md5_shot_path";
 }

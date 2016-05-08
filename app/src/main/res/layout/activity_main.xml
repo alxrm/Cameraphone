@@ -32,32 +32,21 @@
         android:layout_height="match_parent"
         />
 
-    <com.rm.cameraphone.components.camera.CaptureWrapper
+    <include
+        layout="@layout/box_capture_wrapper"
         android:id="@+id/camera_capture_wrapper"
         android:layout_width="match_parent"
         android:layout_height="100dp"
-        android:layout_alignParentBottom="true">
+        android:layout_alignParentBottom="true"
+        />
 
-        <com.rm.cameraphone.components.camera.CaptureButton
-            android:id="@+id/camera_capture_button"
-            android:layout_width="86dp"
-            android:layout_height="70dp"
-            android:layout_centerInParent="true"
-            />
-
-        <com.rm.cameraphone.components.camera.CameraSwitcher
-            android:id="@+id/camera_switcher"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentLeft="true"
-            android:layout_centerVertical="true"
-            android:layout_marginStart="32dp"
-            android:layout_marginLeft="32dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            />
-
-    </com.rm.cameraphone.components.camera.CaptureWrapper>
+    <ImageView
+        android:id="@+id/camera_shot_preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/camera_capture_wrapper"
+        android:scaleType="centerInside"
+        android:visibility="gone"/>
 
     <com.rm.cameraphone.components.camera.TimingView
         android:id="@+id/camera_timer"

@@ -154,6 +154,7 @@ public class CameraSwitcher extends FrameLayout {
     }
 
     private void animateGone(boolean toHide) {
+
         animate()
                 .alpha(toHide ? 0 : 1)
                 .setDuration(200)

@@ -10,26 +10,32 @@ public class Bitmaps {
 
     public static Bitmap rotateBitmap(Bitmap bitmap, int angle) {
 
-        Matrix rotateRight = new Matrix();
-        rotateRight.preRotate(90);
+//        Matrix rotateRight = new Matrix();
+//        rotateRight.preRotate(90);
+//
+//        float[] mirrorY = { -1, 0, 0, 0, 1, 0, 0, 0, 1};
+//        rotateRight = new Matrix();
+//        Matrix matrixMirrorY = new Matrix();
+//        matrixMirrorY.setValues(mirrorY);
+//
+//        rotateRight.postConcat(matrixMirrorY);
+//
+//        rotateRight.preRotate(angle);
+//
+//        return Bitmap.createBitmap(
+//                bitmap, // source
+//                0, // x
+//                0, // y
+//                bitmap.getWidth(), // width
+//                bitmap.getHeight(), // height
+//                rotateRight, // transform matrix
+//                true // filter
+//        );
 
-        float[] mirrorY = { -1, 0, 0, 0, 1, 0, 0, 0, 1};
-        rotateRight = new Matrix();
-        Matrix matrixMirrorY = new Matrix();
-        matrixMirrorY.setValues(mirrorY);
+        Matrix matrix = new Matrix();
 
-        rotateRight.postConcat(matrixMirrorY);
+        matrix.postRotate(angle);
 
-        rotateRight.preRotate(angle);
-
-        return Bitmap.createBitmap(
-                bitmap, // source
-                0, // x
-                0, // y
-                bitmap.getWidth(), // width
-                bitmap.getHeight(), // height
-                rotateRight, // transform matrix
-                true // filter
-        );
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
     }
 }

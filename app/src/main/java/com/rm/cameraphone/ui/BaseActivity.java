@@ -37,4 +37,10 @@ public abstract class BaseActivity<W extends BaseWorker> extends AppCompatActivi
         super.onDestroy();
         mWorker.onDestroy();
     }
+
+    @Override
+    public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+        mWorker.onTrimMemory();
+    }
 }

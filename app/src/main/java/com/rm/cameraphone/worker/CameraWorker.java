@@ -26,6 +26,7 @@ import static com.rm.cameraphone.constants.CameraConstants.MAX_VIDEO_DURATION;
 import static com.rm.cameraphone.constants.FileContants.OUTPUT_PHOTO;
 import static com.rm.cameraphone.constants.FileContants.OUTPUT_VIDEO;
 import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_PREVIEW;
+import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_SHOT_PATH;
 import static com.rm.cameraphone.util.DispatchUtils.postDelayed;
 import static com.rm.cameraphone.util.DispatchUtils.runOnUiThread;
 
@@ -44,9 +45,10 @@ public class CameraWorker extends BaseWorker {
 
     private MediaRecorder mMediaRecorder;
 
+    // photo middle calc data
     private File mCurOutputFile;
+
     private int mCurCameraId;
-    private int mCurCameraMode;
     private boolean mUsingFrontCamera;
 
     private Runnable mTaskSetupPreview;
@@ -55,8 +57,10 @@ public class CameraWorker extends BaseWorker {
     private Runnable mTaskVideoCaptureStart;
     private Runnable mTaskVideoCaptureStop;
 
+    // delayed callbacks
     private Camera.PictureCallback mOnPictureTaken;
     private Runnable mStopVideoHook;
+    private Runnable mTakePictureHook;
 
     public CameraWorker(Activity host) {
         super(host);
@@ -101,6 +105,10 @@ public class CameraWorker extends BaseWorker {
             mCamera.release();
             mCamera = null;
         }
+    }
+
+    @Override
+    public void onTrimMemory() {
     }
 
     /* IMPLEMENTATION PART */
@@ -186,7 +194,6 @@ public class CameraWorker extends BaseWorker {
                     }
                     e.printStackTrace();
                 } finally {
-                    mCurOutputFile = null;
                     releaseMediaRecorder();
                     mCamera.lock();
                 }
@@ -194,21 +201,23 @@ public class CameraWorker extends BaseWorker {
         };
     }
 
-    private Runnable registerTaskWriteFile(final byte[] data) {
+    private Runnable generateTaskWriteFile(final byte[] data) {
         return new Runnable() {
             @Override
             public void run() {
-                File pictureFile = FileUtils.generateOutputFile(OUTPUT_PHOTO);
-                if (pictureFile == null) return;
-
+                mCurOutputFile = FileUtils.generateOutputFile(OUTPUT_PHOTO);
+                if (mCurOutputFile == null) return;
 
                 if (mCurCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    Bitmap image = BitmapFactory.decodeByteArray(data, 0, data.length);
-                    image = Bitmaps.rotateBitmap(image, 180); // revert vertical mirroring
-                    FileUtils.writeBitmapToDevice(image, pictureFile);
+                    Bitmap photo = BitmapFactory.decodeByteArray(data, 0, data.length);
+                    photo = Bitmaps.rotateBitmap(photo, 180); // revert vertical mirroring
+                    FileUtils.writeBitmapToDevice(photo, mCurOutputFile);
                 } else {
-                    FileUtils.writeFileToDevice(data, pictureFile);
+                    FileUtils.writeFileToDevice(data, mCurOutputFile);
                 }
+
+                SharedMap.holder().put(KEY_CAMERA_SHOT_PATH, new WeakReference<Object>(mCurOutputFile.toString()));
+                runOnUiThread(mTakePictureHook);
             }
         };
     }
@@ -218,9 +227,9 @@ public class CameraWorker extends BaseWorker {
         return new Camera.PictureCallback() {
             @Override
             public void onPictureTaken(byte[] data, Camera camera) {
-                if (mCameraPreview != null) mCameraPreview.onPictureTaken();
+//                if (mCameraPreview != null) mCameraPreview.onPictureTaken();
 
-                DispatchUtils.getFileQueue().postRunnable(registerTaskWriteFile(data));
+                DispatchUtils.getFileQueue().postRunnable(generateTaskWriteFile(data));
             }
         };
     }
@@ -231,6 +240,28 @@ public class CameraWorker extends BaseWorker {
             public void run() {
                 mTaskSetupPreview.run();
                 runOnUiThread(mainThreadCallback);
+            }
+        });
+    }
+
+    public void pausePreview(final Runnable mainThreadCallback) {
+        DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                mCamera.stopPreview();
+
+                runOnUiThread(mainThreadCallback);
+            }
+        });
+    }
+
+    public void resumePreview(final Runnable mainThreadCallback) {
+        DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                mCamera.startPreview();
+
+                postDelayed(mainThreadCallback, 500);
             }
         });
     }
@@ -272,8 +303,27 @@ public class CameraWorker extends BaseWorker {
         mCamera.setParameters(parameters);
     }
 
-    public void setCurCameraMode(int curCameraMode) {
-        mCurCameraMode = curCameraMode;
+    public void savePhotoToGallery() {
+        DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                if (mCurOutputFile != null) {
+                    FileUtils.addFileToSystemMedia(mCurOutputFile);
+                }
+            }
+        });
+    }
+
+    public void deleteTempFile() {
+        DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                if (mCurOutputFile != null && mCurOutputFile.delete()) {
+                    mCurOutputFile = null;
+                    Log.d("CameraWorker", "File has been deleted successfully");
+                }
+            }
+        });
     }
 
     public boolean hasFlashFeature(String flashFeature) {
@@ -286,12 +336,12 @@ public class CameraWorker extends BaseWorker {
     }
 
     public void takePicture(final Runnable mainThreadCallback) {
+        mTakePictureHook = mainThreadCallback;
+
         DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
             @Override
             public void run() {
                 mTaskTakePicture.run();
-
-                postDelayed(mainThreadCallback, 1000);
             }
         });
     }
