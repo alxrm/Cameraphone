@@ -27,9 +27,6 @@ public class TimingView extends TextView {
     private ShapeDrawable mBackgroundDrawable;
     private Runnable mTimerTask;
 
-    private int mHeight;
-    private int mWidth;
-
     private long mInnerTimeMillis = 0;
 
     public TimingView(Context context) {
@@ -53,6 +50,7 @@ public class TimingView extends TextView {
         initialize();
     }
 
+    // TODO export to constants
     private void initialize() {
         final float cornerRadius = dp(6);
         final float[] cornerRadii = new float[8];
@@ -76,7 +74,6 @@ public class TimingView extends TextView {
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
-
     }
 
     @Override
@@ -98,19 +95,19 @@ public class TimingView extends TextView {
     }
 
     public void start() {
+        discardTimer();
         animateShow(true);
         postDelayed(mTimerTask, 1000);
     }
 
     public void stop() {
         animateShow(false);
-        discardTimer();
+        removeCallbacks(mTimerTask);
     }
 
     private void discardTimer() {
         mInnerTimeMillis = 0;
         updateTimerNumbers();
-        removeCallbacks(mTimerTask);
     }
 
     private void updateTimerNumbers() {

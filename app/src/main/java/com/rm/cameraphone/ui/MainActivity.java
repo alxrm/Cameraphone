@@ -3,6 +3,7 @@ package com.rm.cameraphone.ui;
 import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.animation.TimeInterpolator;
 import android.animation.ValueAnimator;
 import android.content.ComponentCallbacks2;
 import android.hardware.Camera;
@@ -15,7 +16,9 @@ import android.widget.RelativeLayout;
 
 import com.bumptech.glide.Glide;
 import com.rm.cameraphone.R;
+import com.rm.cameraphone.components.ProgressBar;
 import com.rm.cameraphone.components.SwipingFrameLayout;
+import com.rm.cameraphone.components.VideoPlayerView;
 import com.rm.cameraphone.components.camera.CameraPreviewSurface;
 import com.rm.cameraphone.components.camera.CameraSwitcher;
 import com.rm.cameraphone.components.camera.CaptureButton;
@@ -28,6 +31,7 @@ import com.rm.cameraphone.events.OnCaptureButtonListener;
 import com.rm.cameraphone.events.OnChangeCameraListener;
 import com.rm.cameraphone.events.OnFlashModeListener;
 import com.rm.cameraphone.events.OnSwipeListener;
+import com.rm.cameraphone.events.VideoPlayerCallbacks;
 import com.rm.cameraphone.util.Animators;
 import com.rm.cameraphone.util.PermissionUtils;
 import com.rm.cameraphone.util.SharedMap;
@@ -52,7 +56,7 @@ import static com.rm.cameraphone.util.Interpolators.OVERSHOOT;
 public class MainActivity extends BaseActivity<CameraWorker> implements
         OnCaptureButtonListener, OnCameraFocusedListener,
         OnChangeCameraListener, OnFlashModeListener,
-        OnSwipeListener {
+        OnSwipeListener, VideoPlayerCallbacks {
 
     private static final String TAG = "MainActivity";
 
@@ -66,7 +70,9 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     @InjectView(R.id.camera_preview) SwipingFrameLayout mCameraPreviewWrapper;
 
     // saving state
-    @InjectView(R.id.camera_shot_preview) ImageView mShotPreview;
+    @InjectView(R.id.camera_photo_shot_preview) ImageView mPhotoShotPreview;
+    @InjectView(R.id.camera_video_shot_preview) VideoPlayerView mVideoPreviewPlayer;
+    @InjectView(R.id.camera_video_shot_progress) ProgressBar mVideoPreviewProgress;
     @InjectView(R.id.camera_btn_action) ImageView mButtonAction; // crop or play/pause
     @InjectView(R.id.camera_btn_done) ImageView mButtonDone;
     @InjectView(R.id.camera_btn_cancel) ImageView mButtonCancel;
@@ -74,6 +80,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     private CameraPreviewSurface mCameraPreview;
     private int mCurrentFlashMode = FLASH_MODE_AUTO;
     private int mCurrentCameraMode = CAMERA_MODE_PHOTO;
+    private int mCurrentShotCameraMode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,6 +99,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
 
     private void setupViews() {
         mCaptureButton.setOnCaptureButtonListener(this);
+        mVideoPreviewPlayer.setVideoPlayerCallbacks(this);
         mFlashSwitcher.setFlashModeListener(this);
         mCameraPreviewWrapper.setOnSwipeListener(this);
         mCameraPreviewWrapper.setEnabled(false);
@@ -114,7 +122,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mButtonDone.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                animateToSavingState(false);
+                animateToSavingState(false, mCurrentShotCameraMode);
             }
         });
 
@@ -122,7 +130,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
             @Override
             public void onClick(View v) {
                 mWorker.deleteTempFile();
-                animateToSavingState(false);
+                animateToSavingState(false, mCurrentShotCameraMode);
             }
         });
 
@@ -200,6 +208,8 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
             mCaptureButton.animateRecord(true);
             onStopRecord();
         }
+
+        setupShotPreview(false);
     }
 
     @Override
@@ -207,7 +217,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mWorker.takePicture(new Runnable() {
             @Override
             public void run() {
-                animateToSavingState(true);
+                animateToSavingState(true, CAMERA_MODE_PHOTO);
             }
         });
     }
@@ -240,7 +250,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
             public void run() {
                 Log.d(TAG, "VIDEO CAPTURE STOPPED");
                 mCameraTimer.stop();
-                animateToSavingState(true);
+                animateToSavingState(true, CAMERA_MODE_VIDEO);
             }
         });
     }
@@ -330,6 +340,36 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         setControlsEnabled(false);
     }
 
+    @Override
+    public void onVideoProgressChanged(int progress) {
+        mVideoPreviewProgress.setProgress(progress);
+    }
+
+    @Override
+    public void onVideoPlayerStarted(int at) {
+        mButtonAction.setImageResource(R.drawable.video_pause);
+    }
+
+    @Override
+    public void onVideoPlayerStopped(int at) {
+        mButtonAction.setImageResource(R.drawable.video_play);
+    }
+
+    @Override
+    public void onVideoPlayerReady(int duration) {
+        mVideoPreviewProgress.setMax(duration);
+        mButtonAction.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mVideoPreviewPlayer.isPlaying()) {
+                    mVideoPreviewPlayer.stop();
+                } else {
+                    mVideoPreviewPlayer.start();
+                }
+            }
+        });
+    }
+
     private void setupFlashMode() {
         boolean hasFeature = mWorker.hasFlashFeature(null);
 
@@ -341,20 +381,51 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mFlashSwitcher.setEnabled(hasFeature);
     }
 
-
     private void setupShotPreview(boolean show) {
-        String previewPath = (String) SharedMap.holder().get(KEY_CAMERA_SHOT_PATH);
+        if (mCurrentShotCameraMode == CAMERA_MODE_PHOTO) {
+            setupPhotoShotPreview(show);
+        } else {
+            setupVideoShotPreview(show);
+        }
+    }
+
+    private void setupVideoShotPreview(boolean show) {
+        final String previewPath = (String) SharedMap.holder().get(KEY_CAMERA_SHOT_PATH);
         if (previewPath == null) return;
-        mShotPreview.setVisibility(show ? View.VISIBLE : View.GONE);
+
+        mVideoPreviewPlayer.setVideoPath(previewPath);
+        mVideoPreviewPlayer.setVisibility(show ? View.VISIBLE : View.GONE);
+        mVideoPreviewProgress.setVisibility(show ? View.VISIBLE : View.GONE);
+        mVideoPreviewProgress.setProgress(0);
+
+        mButtonAction.setImageResource(R.drawable.video_play);
+
+        mCaptureWrapper.animateToState(show ? STATE_TRANSPARENT :
+                mCurrentCameraMode == CAMERA_MODE_PHOTO ? STATE_OPAQUE : STATE_TRANSPARENT);
+
+        if (show) {
+            mVideoPreviewPlayer.showPreview();
+        } else {
+            mVideoPreviewPlayer.removePreview();
+        }
+    }
+
+    private void setupPhotoShotPreview(boolean show) {
+        Log.d("MainActivity", "setupPhotoShotPreview");
+        final String previewPath = (String) SharedMap.holder().get(KEY_CAMERA_SHOT_PATH);
+        if (previewPath == null) return;
+
+        mPhotoShotPreview.setVisibility(show ? View.VISIBLE : View.GONE);
+        mButtonAction.setImageResource(R.drawable.crop);
 
         if (!show) {
-            Glide.clear(mShotPreview);
+            Glide.clear(mPhotoShotPreview);
             SharedMap.holder().remove(KEY_CAMERA_SHOT_PATH);
             cleanUp();
             return;
         }
 
-        Glide.with(this).load(previewPath).into(mShotPreview);
+        Glide.with(this).load(previewPath).into(mPhotoShotPreview);
     }
 
     private void setControlsEnabled(boolean enabled) {
@@ -364,14 +435,14 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mCameraSwitcher.setEnabled(enabled);
     }
 
-    private void animateToSavingState(boolean show) {
+    private void animateToSavingState(boolean show, int mode) {
+        mCurrentShotCameraMode = mode;
         mCameraPreviewWrapper.setEnabled(!show);
 
         if (show) {
             mWorker.pausePreview(new Runnable() {
                 @Override
                 public void run() {
-                    animateOverlay(true);
                     animateControlsForSaving(false);
                     animateSavingButtons(true);
 
@@ -384,8 +455,6 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
                 @Override
                 public void run() {
                     setupShotPreview(false);
-
-                    animateOverlay(false);
                     animateSavingButtons(false);
                 }
             });
@@ -393,7 +462,10 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     }
 
     private void animateSavingButtons(final boolean show) {
-        ValueAnimator animator = Animators.animateValue(200, OVERSHOOT, new ValueAnimator.AnimatorUpdateListener() {
+        final TimeInterpolator interpolator = show ? OVERSHOOT : DECELERATE;
+        final long animTime = show ? 400 : 200;
+
+        final ValueAnimator animator = Animators.animateValue(animTime, interpolator, new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 float fraction = animation.getAnimatedFraction();
@@ -418,6 +490,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
                     mButtonDone.setVisibility(View.VISIBLE);
                     mButtonCancel.setVisibility(View.VISIBLE);
                     mButtonAction.setVisibility(View.VISIBLE);
+                    animateOverlay(true);
                 }
             }
 
@@ -428,6 +501,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
                     mButtonDone.setVisibility(View.GONE);
                     mButtonCancel.setVisibility(View.GONE);
                     mButtonAction.setVisibility(View.GONE);
+                    animateOverlay(false);
                     animateControlsForSaving(true);
                 }
             }
@@ -472,7 +546,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     private void animateOverlay(boolean show) {
         mPreviewOverlay.animate()
                 .alpha(show ? 1 : 0)
-                .setDuration(300)
+                .setDuration(200)
                 .setInterpolator(DECELERATE)
                 .start();
     }

@@ -5,7 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/black"
-    tools:context=".ui.MainActivity">
+    tools:context=".ui.MainActivity"
+    >
 
     <com.rm.cameraphone.components.SwipingFrameLayout
         android:id="@+id/camera_preview"
@@ -32,6 +33,13 @@
         android:layout_height="match_parent"
         />
 
+    <com.rm.cameraphone.components.VideoPlayerView
+        android:id="@+id/camera_video_shot_preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        />
+
     <include
         layout="@layout/box_capture_wrapper"
         android:id="@+id/camera_capture_wrapper"
@@ -41,12 +49,13 @@
         />
 
     <ImageView
-        android:id="@+id/camera_shot_preview"
+        android:id="@+id/camera_photo_shot_preview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/camera_capture_wrapper"
         android:scaleType="centerInside"
-        android:visibility="gone"/>
+        android:visibility="gone"
+        />
 
     <com.rm.cameraphone.components.camera.TimingView
         android:id="@+id/camera_timer"

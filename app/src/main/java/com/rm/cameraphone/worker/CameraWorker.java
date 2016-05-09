@@ -27,7 +27,6 @@ import static com.rm.cameraphone.constants.FileContants.OUTPUT_PHOTO;
 import static com.rm.cameraphone.constants.FileContants.OUTPUT_VIDEO;
 import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_PREVIEW;
 import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_SHOT_PATH;
-import static com.rm.cameraphone.util.DispatchUtils.postDelayed;
 import static com.rm.cameraphone.util.DispatchUtils.runOnUiThread;
 
 /**
@@ -102,6 +101,7 @@ public class CameraWorker extends BaseWorker {
     public void onDestroy() {
         releaseMediaRecorder();
         if (mCamera != null) {
+            mCameraPreview.getHolder().removeCallback(mCameraPreview);
             mCamera.release();
             mCamera = null;
         }
@@ -194,6 +194,7 @@ public class CameraWorker extends BaseWorker {
                     }
                     e.printStackTrace();
                 } finally {
+                    SharedMap.holder().put(KEY_CAMERA_SHOT_PATH, new WeakReference<Object>(mCurOutputFile.toString()));
                     releaseMediaRecorder();
                     mCamera.lock();
                 }
@@ -259,9 +260,14 @@ public class CameraWorker extends BaseWorker {
         DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
             @Override
             public void run() {
-                mCamera.startPreview();
+                try {
+                    mCamera.reconnect();
+                    mCamera.startPreview();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
-                postDelayed(mainThreadCallback, 500);
+                runOnUiThread(mainThreadCallback);
             }
         });
     }

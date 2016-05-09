@@ -395,6 +395,7 @@ public class CaptureButton extends View {
     }
 
     private void handleTouch() {
+        if (isRecording()) return;
         animateClickedState(true);
 
         mLongTapTask = makeLongClickTask();

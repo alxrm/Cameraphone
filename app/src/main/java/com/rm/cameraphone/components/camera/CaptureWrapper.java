@@ -100,7 +100,7 @@ public class CaptureWrapper extends RelativeLayout {
             public void onAnimationUpdate(ValueAnimator animator) {
                 mBackgroundView.setBackgroundColor((int) animator.getAnimatedValue());
             }
-        }).start();
+        }).setDuration(400).start();
     }
 
     private void animateGone(boolean reverse) {
