@@ -82,6 +82,9 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     private int mCurrentCameraMode = CAMERA_MODE_PHOTO;
     private int mCurrentShotCameraMode;
 
+    private View.OnClickListener mActionVideoListener;
+    private View.OnClickListener mActionCropListener;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -134,13 +137,23 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
             }
         });
 
-        mButtonAction.setOnClickListener(new View.OnClickListener() {
+        mActionCropListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // here is the method call in which we are switching camera mode states
-                // TODO implement actions
+                PhotoCropActivity.start(MainActivity.this, null);
             }
-        });
+        };
+
+        mActionVideoListener = new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mVideoPreviewPlayer.isPlaying()) {
+                    mVideoPreviewPlayer.pause();
+                } else {
+                    mVideoPreviewPlayer.play();
+                }
+            }
+        };
 
         mSchemeIndicator.setIndicatorListener(new AnimatorListenerAdapter() {
 
@@ -209,7 +222,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
             onStopRecord();
         }
 
-        setupShotPreview(false);
+        mVideoPreviewPlayer.pause();
     }
 
     @Override
@@ -346,28 +359,19 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     }
 
     @Override
-    public void onVideoPlayerStarted(int at) {
+    public void onVideoPlayerStarted() {
         mButtonAction.setImageResource(R.drawable.video_pause);
     }
 
     @Override
-    public void onVideoPlayerStopped(int at) {
+    public void onVideoPlayerStopped() {
         mButtonAction.setImageResource(R.drawable.video_play);
     }
 
     @Override
     public void onVideoPlayerReady(int duration) {
         mVideoPreviewProgress.setMax(duration);
-        mButtonAction.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (mVideoPreviewPlayer.isPlaying()) {
-                    mVideoPreviewPlayer.stop();
-                } else {
-                    mVideoPreviewPlayer.start();
-                }
-            }
-        });
+        mButtonAction.setOnClickListener(mActionVideoListener);
     }
 
     private void setupFlashMode() {
@@ -390,10 +394,6 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     }
 
     private void setupVideoShotPreview(boolean show) {
-        final String previewPath = (String) SharedMap.holder().get(KEY_CAMERA_SHOT_PATH);
-        if (previewPath == null) return;
-
-        mVideoPreviewPlayer.setVideoPath(previewPath);
         mVideoPreviewPlayer.setVisibility(show ? View.VISIBLE : View.GONE);
         mVideoPreviewProgress.setVisibility(show ? View.VISIBLE : View.GONE);
         mVideoPreviewProgress.setProgress(0);
@@ -403,6 +403,11 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mCaptureWrapper.animateToState(show ? STATE_TRANSPARENT :
                 mCurrentCameraMode == CAMERA_MODE_PHOTO ? STATE_OPAQUE : STATE_TRANSPARENT);
 
+        final String previewPath = (String) SharedMap.holder().get(KEY_CAMERA_SHOT_PATH);
+        if (previewPath == null) return;
+
+        mVideoPreviewPlayer.setVideoPath(previewPath);
+
         if (show) {
             mVideoPreviewPlayer.showPreview();
         } else {
@@ -411,12 +416,9 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     }
 
     private void setupPhotoShotPreview(boolean show) {
-        Log.d("MainActivity", "setupPhotoShotPreview");
-        final String previewPath = (String) SharedMap.holder().get(KEY_CAMERA_SHOT_PATH);
-        if (previewPath == null) return;
-
         mPhotoShotPreview.setVisibility(show ? View.VISIBLE : View.GONE);
         mButtonAction.setImageResource(R.drawable.crop);
+        mButtonAction.setOnClickListener(mActionCropListener);
 
         if (!show) {
             Glide.clear(mPhotoShotPreview);
@@ -425,7 +427,10 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
             return;
         }
 
-        Glide.with(this).load(previewPath).into(mPhotoShotPreview);
+        final String previewPath = (String) SharedMap.holder().get(KEY_CAMERA_SHOT_PATH);
+        if (previewPath != null) {
+            Glide.with(this).load(previewPath).into(mPhotoShotPreview);
+        }
     }
 
     private void setControlsEnabled(boolean enabled) {
@@ -546,7 +551,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     private void animateOverlay(boolean show) {
         mPreviewOverlay.animate()
                 .alpha(show ? 1 : 0)
-                .setDuration(200)
+                .setDuration(300)
                 .setInterpolator(DECELERATE)
                 .start();
     }

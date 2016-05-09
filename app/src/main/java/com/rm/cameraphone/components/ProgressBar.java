@@ -19,7 +19,6 @@ public class ProgressBar extends View {
     private int mWidth;
     private int mHeight;
 
-    private Paint mBackgroundPaint;
     private Paint mProgressPaint;
 
     // changing
@@ -49,11 +48,6 @@ public class ProgressBar extends View {
 
     private void initialize() {
         setBackgroundColor(Color.TRANSPARENT);
-
-        mBackgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mBackgroundPaint.setStyle(Paint.Style.FILL);
-        mBackgroundPaint.setColor(COLOR_PROGRESS_BG);
-
         mProgressPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mProgressPaint.setStyle(Paint.Style.FILL);
         mProgressPaint.setColor(Color.WHITE);
@@ -66,8 +60,6 @@ public class ProgressBar extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
-        canvas.drawRect(0, 0, mWidth, mHeight, mBackgroundPaint);
         canvas.drawRect(0, 0, mProgressWidth, mHeight, mProgressPaint);
     }
 

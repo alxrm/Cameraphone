@@ -6,7 +6,7 @@ package com.rm.cameraphone.events;
 public interface VideoPlayerCallbacks {
 
     void onVideoProgressChanged(int progress);
-    void onVideoPlayerStarted(int at);
-    void onVideoPlayerStopped(int at);
+    void onVideoPlayerStarted();
+    void onVideoPlayerStopped();
     void onVideoPlayerReady(int duration);
 }

@@ -119,12 +119,12 @@ public class VideoPlayerView extends FrameLayout implements
 
     @Override
     public void onCompletion(MediaPlayer mp) {
-        stop();
+        pause();
         if (mVideoPlayerCallbacks != null)
             mVideoPlayerCallbacks.onVideoProgressChanged(mMediaPlayer.getDuration());
     }
 
-    public void start() {
+    public void play() {
         if (mMediaPlayer == null || !mIsPrepared) return;
 
         if (!mMediaPlayer.isPlaying()) {
@@ -133,11 +133,11 @@ public class VideoPlayerView extends FrameLayout implements
         }
 
         if (mVideoPlayerCallbacks != null) {
-            mVideoPlayerCallbacks.onVideoPlayerStarted(mMediaPlayer.getCurrentPosition());
+            mVideoPlayerCallbacks.onVideoPlayerStarted();
         }
     }
 
-    public void stop() {
+    public void pause() {
         if (mMediaPlayer == null || !mIsPrepared) return;
 
         if (mMediaPlayer.isPlaying()) {
@@ -146,7 +146,7 @@ public class VideoPlayerView extends FrameLayout implements
         }
 
         if (mVideoPlayerCallbacks != null) {
-            mVideoPlayerCallbacks.onVideoPlayerStopped(mMediaPlayer.getCurrentPosition());
+            mVideoPlayerCallbacks.onVideoPlayerStopped();
         }
     }
 
