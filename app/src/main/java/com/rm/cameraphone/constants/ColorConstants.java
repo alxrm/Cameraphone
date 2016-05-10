@@ -19,4 +19,5 @@ public interface ColorConstants {
     int COLOR_INDICATOR_EMPTY = 0x4CFFFFFF;
 
     int COLOR_VIDEO_TIMING_FILL = 0x66000000;
+    int COLOR_CROP_GRID = 0x80FFFFFF;
 }

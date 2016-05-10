@@ -47,11 +47,11 @@ public class DispatchUtils {
         sHandler.post(task);
     }
 
-    public static void post(Runnable task) {
-        runOnUiThread(task);
+    public static void runOnUiThread(Runnable task, long delay) {
+        sHandler.postDelayed(task, delay);
     }
 
-    public static void postDelayed(Runnable task, long delay) {
-        sHandler.postDelayed(task, delay);
+    public static void cancelRunOnUiThread(Runnable task) {
+        sHandler.removeCallbacks(task);
     }
 }

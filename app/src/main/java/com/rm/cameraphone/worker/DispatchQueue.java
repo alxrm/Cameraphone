@@ -68,6 +68,11 @@ public class DispatchQueue extends Thread {
         Looper.prepare();
         handler = new Handler();
         syncLatch.countDown();
-        Looper.loop();
+
+        try {
+            Looper.loop();
+        } catch (Exception e) {
+            Log.e("Dispatcher", e.getMessage());
+        }
     }
 }

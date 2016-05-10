@@ -15,13 +15,75 @@
         android:layout_alignParentBottom="true"
         />
 
-    <com.rm.cameraphone.components.crop.HorizontalWheelView
-        android:id="@+id/crop_rotate_wheel"
-        android:layout_width="198dp"
-        android:layout_height="22dp"
-        android:layout_margin="16dp"
-        android:layout_centerHorizontal="true"
+    <RelativeLayout
+        android:id="@+id/crop_rotate_actions"
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
         android:layout_above="@id/crop_actions"
-        />
+        >
+
+        <com.rm.cameraphone.components.crop.HorizontalWheelView
+            android:id="@+id/crop_rotate_wheel"
+            android:layout_width="198dp"
+            android:layout_height="22dp"
+            android:layout_marginBottom="16dp"
+            android:layout_marginRight="16dp"
+            android:layout_marginLeft="16dp"
+            android:layout_centerHorizontal="true"
+            android:layout_alignParentBottom="true"
+            />
+
+        <TextView
+            android:id="@+id/crop_rotate_angle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="6dp"
+            android:layout_centerHorizontal="true"
+            android:layout_above="@id/crop_rotate_wheel"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:text="0°"
+            />
+
+        <ImageView
+            android:id="@+id/crop_rotate_icon"
+            android:layout_width="wrap_content"
+            android:layout_height="54dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:paddingRight="16dp"
+            android:paddingLeft="16dp"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
+            android:src="@drawable/rotate"
+            android:background="?attr/selectableItemBackground"
+            />
+
+    </RelativeLayout>
+
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/crop_rotate_actions"
+        android:layout_marginTop="30dp"
+        >
+
+        <com.rm.cameraphone.components.crop.GestureCropImageView
+            android:id="@+id/crop_target"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            />
+
+        <com.rm.cameraphone.components.crop.OverlayView
+            android:id="@+id/crop_overlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            />
+
+    </FrameLayout>
+
 
 </RelativeLayout>

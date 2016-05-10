@@ -29,4 +29,8 @@ public class DimenUtils {
     public static int dp(float dp) {
         return (int) (dp * sMetrics.density);
     }
+
+    public static float getPixelsInCM(float cm, boolean isX) {
+        return (cm / 2.54f) * (isX ? sMetrics.xdpi : sMetrics.ydpi);
+    }
 }

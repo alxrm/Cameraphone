@@ -180,8 +180,12 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
         return new Runnable() {
             @Override
             public void run() {
-                Log.d(TAG, "AUTO FOCUS");
-                mCamera.autoFocus(CameraPreviewSurface.this);
+                try {
+                    Log.d(TAG, "AUTO FOCUS");
+                    mCamera.autoFocus(CameraPreviewSurface.this);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         };
     }

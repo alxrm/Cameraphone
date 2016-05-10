@@ -12,7 +12,7 @@ import android.util.SparseArray;
 import com.rm.cameraphone.components.camera.CameraPreviewSurface;
 import com.rm.cameraphone.constants.FlashSwitcherConstants;
 import com.rm.cameraphone.events.OnCameraFocusedListener;
-import com.rm.cameraphone.util.Bitmaps;
+import com.rm.cameraphone.util.bitmap.Bitmaps;
 import com.rm.cameraphone.util.DispatchUtils;
 import com.rm.cameraphone.util.FileUtils;
 import com.rm.cameraphone.util.SharedMap;
@@ -55,6 +55,7 @@ public class CameraWorker extends BaseWorker {
     private Runnable mTaskTakePicture;
     private Runnable mTaskVideoCaptureStart;
     private Runnable mTaskVideoCaptureStop;
+    private Runnable mTaskReleaseComponents;
 
     // delayed callbacks
     private Camera.PictureCallback mOnPictureTaken;
@@ -74,6 +75,7 @@ public class CameraWorker extends BaseWorker {
         mTaskTakePicture = registerTaskTakePicture();
         mTaskVideoCaptureStart = registerTaskVideoCaptureStart();
         mTaskVideoCaptureStop = registerTaskVideoCaptureStop();
+        mTaskReleaseComponents = registerTaskReleaseComponents();
     }
 
     @Override
@@ -99,12 +101,7 @@ public class CameraWorker extends BaseWorker {
 
     @Override
     public void onDestroy() {
-        releaseMediaRecorder();
-        if (mCamera != null) {
-            mCameraPreview.getHolder().removeCallback(mCameraPreview);
-            mCamera.release();
-            mCamera = null;
-        }
+        DispatchUtils.getCameraQueue().postRunnable(mTaskReleaseComponents);
     }
 
     @Override
@@ -202,6 +199,16 @@ public class CameraWorker extends BaseWorker {
         };
     }
 
+    private Runnable registerTaskReleaseComponents() {
+        return new Runnable() {
+            @Override
+            public void run() {
+                releaseMediaRecorder();
+                releaseCamera();
+            }
+        };
+    }
+
     private Runnable generateTaskWriteFile(final byte[] data) {
         return new Runnable() {
             @Override
@@ -287,8 +294,15 @@ public class CameraWorker extends BaseWorker {
     }
 
     public void setFlashMode(int flashModeKey) {
-        Camera.Parameters parameters = mCamera.getParameters();
+        Camera.Parameters parameters;
         String flashMode = null;
+
+        try {
+            parameters = mCamera.getParameters();
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage());
+            return;
+        }
 
         switch (flashModeKey) {
             case FlashSwitcherConstants.FLASH_MODE_AUTO:
@@ -302,7 +316,7 @@ public class CameraWorker extends BaseWorker {
                 break;
         }
 
-        if (flashMode == null || !hasFlashFeature(flashMode) || mCamera == null) return;
+        if (flashMode == null || !hasFlashFeature(flashMode)) return;
 
         parameters.setFlashMode(flashMode);
         mParameters.append(mCurCameraId, parameters);
@@ -336,9 +350,14 @@ public class CameraWorker extends BaseWorker {
         if (mCamera == null) return false;
         if (flashFeature == null) flashFeature = Camera.Parameters.FLASH_MODE_AUTO;
 
-        Camera.Parameters parameters = mCamera.getParameters();
-        List<String> supportedFlashModes = parameters.getSupportedFlashModes();
-        return supportedFlashModes != null && supportedFlashModes.contains(flashFeature);
+        try {
+            Camera.Parameters parameters = mCamera.getParameters();
+            List<String> supportedFlashModes = parameters.getSupportedFlashModes();
+            return supportedFlashModes != null && supportedFlashModes.contains(flashFeature);
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage());
+            return false;
+        }
     }
 
     public void takePicture(final Runnable mainThreadCallback) {
@@ -440,6 +459,14 @@ public class CameraWorker extends BaseWorker {
             mMediaRecorder.release();
             mMediaRecorder = null;
             mCamera.lock();
+        }
+    }
+
+    private void releaseCamera() {
+        if (mCamera != null) {
+            mCameraPreview.getHolder().removeCallback(mCameraPreview);
+            mCamera.release();
+            mCamera = null;
         }
     }
 

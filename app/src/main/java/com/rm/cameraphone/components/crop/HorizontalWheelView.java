@@ -26,7 +26,7 @@ public class HorizontalWheelView extends View {
     private Paint mProgressLinePaint;
     private Paint mProgressMiddleLinePaint;
 
-    private int mProgressLineWidth, mProgressLineHeight;
+    private int mProgressLineWidth;
     private int mProgressLineMargin;
 
     private float mTotalScrollDistance;
@@ -65,7 +65,6 @@ public class HorizontalWheelView extends View {
 
     private void initialize() {
         mProgressLineWidth = dp(1);
-        mProgressLineHeight = dp(22);
         mProgressLineMargin = dp(7);
 
         mProgressLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -100,9 +99,9 @@ public class HorizontalWheelView extends View {
 
             canvas.drawLine(
                     -deltaX + i * (mProgressLineWidth + mProgressLineMargin),
-                    mCenterY - mProgressLineHeight / 3,
+                    mCenterY - mHeight / 3,
                     -deltaX + i * (mProgressLineWidth + mProgressLineMargin),
-                    mCenterY + mProgressLineHeight / 3, mProgressLinePaint);
+                    mCenterY + mHeight / 3, mProgressLinePaint);
         }
 
         canvas.drawLine(mCenterX, 0, mCenterX, mHeight, mProgressMiddleLinePaint);

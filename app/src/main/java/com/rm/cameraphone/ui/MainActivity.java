@@ -226,6 +226,18 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        cleanUp();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Glide.clear(mPhotoShotPreview);
+    }
+
+    @Override
     public void onFocused(Camera camera) {
         mWorker.takePicture(new Runnable() {
             @Override
@@ -429,7 +441,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
 
         final String previewPath = (String) SharedMap.holder().get(KEY_CAMERA_SHOT_PATH);
         if (previewPath != null) {
-            Glide.with(this).load(previewPath).into(mPhotoShotPreview);
+            Glide.with(this).load(previewPath).sizeMultiplier(0.8F).into(mPhotoShotPreview);
         }
     }
 
