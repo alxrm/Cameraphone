@@ -8,39 +8,45 @@ import android.support.annotation.NonNull;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.rm.cameraphone.R;
-import com.rm.cameraphone.components.crop.GestureCropImageView;
-import com.rm.cameraphone.components.crop.HorizontalWheelView;
-import com.rm.cameraphone.components.crop.OverlayView;
-import com.rm.cameraphone.components.crop.TransformImageView;
+import com.rm.cameraphone.components.crop.CropOverlayView;
+import com.rm.cameraphone.components.crop.GestureImageView;
+import com.rm.cameraphone.components.crop.MatrixImageView;
+import com.rm.cameraphone.components.crop.WheelView;
 import com.rm.cameraphone.events.CropBoundsChangeListener;
 import com.rm.cameraphone.events.OnWheelScrollingListener;
 import com.rm.cameraphone.events.OverlayViewChangeListener;
 import com.rm.cameraphone.util.DispatchUtils;
-import com.rm.cameraphone.util.SharedMap;
 import com.rm.cameraphone.worker.CropWorker;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
 
-import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_SHOT_PATH;
-
 public class PhotoCropActivity extends BaseActivity<CropWorker> {
 
-    @InjectView(R.id.crop_overlay) OverlayView mOverlayView;
+    private static final String PHOTO_SOURCE_PATH = "arg_photo_src_path";
+
+    @InjectView(R.id.crop_overlay) CropOverlayView mCropOverlayView;
+    @InjectView(R.id.crop_rotate_actions) RelativeLayout mRotateActions;
     @InjectView(R.id.crop_rotate_icon) ImageView mRotateIcon;
-    @InjectView(R.id.crop_rotate_wheel) HorizontalWheelView mRotateWheel;
+    @InjectView(R.id.crop_rotate_wheel) WheelView mRotateWheel;
     @InjectView(R.id.crop_rotate_angle) TextView mTextAngle;
-    @InjectView(R.id.crop_target) GestureCropImageView mTarget;
+    @InjectView(R.id.crop_target) GestureImageView mTarget;
+
+    // actions
     @InjectView(R.id.crop_cancel) Button mBtnCancel;
     @InjectView(R.id.crop_done) Button mBtnDone;
     @InjectView(R.id.crop_reset) Button mBtnReset;
 
-    public static void start(Context context, Bundle args) {
+    private Runnable mTaskUpdateImage;
+    private String mCurrentImagePath;
+
+    public static void start(Context context, String srcPath) {
         Intent starter = new Intent(context, PhotoCropActivity.class);
-        if (args != null) starter.putExtras(args);
+        starter.putExtra(PHOTO_SOURCE_PATH, srcPath);
         context.startActivity(starter);
     }
 
@@ -49,23 +55,23 @@ public class PhotoCropActivity extends BaseActivity<CropWorker> {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_photo_crop);
         ButterKnife.inject(this);
+
         setupViews();
+        registerTasks();
 
-        String path = (String) SharedMap.holder().get(KEY_CAMERA_SHOT_PATH);
+        mCurrentImagePath = getIntent().getExtras().getString(PHOTO_SOURCE_PATH);
+        if (mCurrentImagePath == null) return;
 
-        try {
-            mTarget.setImagePath(path);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        updateImage();
 
         DispatchUtils.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                resetImage();
+                resetCropSettings();
             }
         }, 200);
     }
+
 
     private void setupViews() {
         mRotateIcon.setOnClickListener(new View.OnClickListener() {
@@ -96,7 +102,7 @@ public class PhotoCropActivity extends BaseActivity<CropWorker> {
             }
         });
 
-        mTarget.setTransformImageListener(new TransformImageView.TransformImageListener() {
+        mTarget.setTransformImageListener(new MatrixImageView.TransformImageListener() {
             @Override
             public void onLoadComplete() {
             }
@@ -108,15 +114,14 @@ public class PhotoCropActivity extends BaseActivity<CropWorker> {
 
             @Override
             public void onRotate(float currentAngle) {
-                mOverlayView.setShowCropGrid(true);
+                mCropOverlayView.setShowCropGrid(true);
                 mBtnReset.setVisibility(View.VISIBLE);
-                mTextAngle.setText(currentAngle == -0F ?
-                        "0°" : String.format("%.1f°", currentAngle));
+                mTextAngle.setText(String.format("%.1f°", currentAngle));
             }
 
             @Override
             public void onScale(float currentScale) {
-                mOverlayView.setShowCropGrid(true);
+                mCropOverlayView.setShowCropGrid(true);
                 mBtnReset.setVisibility(View.VISIBLE);
             }
         });
@@ -124,15 +129,15 @@ public class PhotoCropActivity extends BaseActivity<CropWorker> {
         mTarget.setCropBoundsChangeListener(new CropBoundsChangeListener() {
             @Override
             public void onCropAspectRatioChanged(float cropRatio) {
-                mOverlayView.setTargetAspectRatio(cropRatio);
+                mCropOverlayView.setTargetAspectRatio(cropRatio);
             }
         });
 
-        mOverlayView.setOverlayViewChangeListener(new OverlayViewChangeListener() {
+        mCropOverlayView.setOverlayViewChangeListener(new OverlayViewChangeListener() {
             @Override
             public void onCropRectUpdated(RectF cropRect) {
                 mBtnReset.setVisibility(View.VISIBLE);
-                mOverlayView.setShowCropGrid(true);
+                mCropOverlayView.setShowCropGrid(true);
                 mTarget.setCropRect(cropRect);
             }
         });
@@ -140,23 +145,32 @@ public class PhotoCropActivity extends BaseActivity<CropWorker> {
         mBtnCancel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                finish();
+                DispatchUtils.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        finish();
+                    }
+                }, 200);
             }
         });
 
         mBtnReset.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                resetImage();
+                resetCropSettings();
             }
         });
 
         mBtnDone.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mTarget.cropAndSaveImage();
+                mTarget.cropAndSaveImage(mTaskUpdateImage);
             }
         });
+    }
+
+    private void registerTasks() {
+        mTaskUpdateImage = registerTaskUpdateImage();
     }
 
     @Override
@@ -164,14 +178,37 @@ public class PhotoCropActivity extends BaseActivity<CropWorker> {
         return new CropWorker(this);
     }
 
-    private void resetImage() {
-        mOverlayView.setTargetAspectRatio(mTarget.getTargetAspectRatio());
+    private void updateImage() {
+        try {
+            mTarget.setImagePath(mCurrentImagePath);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void resetCropSettings() {
+        mCropOverlayView.setTargetAspectRatio(mTarget.getTargetAspectRatio());
         mTarget.postRotate(-mTarget.getCurrentAngle());
         mTarget.zoomOutImage(mTarget.getMinScale());
 
         mTarget.cancelAllAnimations();
         mTarget.setImageToWrapCropBounds(false);
         mBtnReset.setVisibility(View.GONE);
-        mOverlayView.setShowCropGrid(false);
+        mCropOverlayView.setShowCropGrid(false);
+    }
+
+    private Runnable registerTaskUpdateImage() {
+        return new Runnable() {
+            @Override
+            public void run() {
+                mCropOverlayView.setVisibility(View.GONE);
+                mTarget.setVisibility(View.GONE);
+                mBtnDone.setVisibility(View.GONE);
+                mBtnReset.setVisibility(View.GONE);
+                mRotateActions.setVisibility(View.GONE);
+
+                mBtnCancel.setText("Exit");
+            }
+        };
     }
 }

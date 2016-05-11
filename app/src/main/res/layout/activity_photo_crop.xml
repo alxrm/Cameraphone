@@ -22,7 +22,7 @@
         android:layout_above="@id/crop_actions"
         >
 
-        <com.rm.cameraphone.components.crop.HorizontalWheelView
+        <com.rm.cameraphone.components.crop.WheelView
             android:id="@+id/crop_rotate_wheel"
             android:layout_width="198dp"
             android:layout_height="22dp"
@@ -71,13 +71,13 @@
         android:layout_marginTop="30dp"
         >
 
-        <com.rm.cameraphone.components.crop.GestureCropImageView
+        <com.rm.cameraphone.components.crop.GestureImageView
             android:id="@+id/crop_target"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             />
 
-        <com.rm.cameraphone.components.crop.OverlayView
+        <com.rm.cameraphone.components.crop.CropOverlayView
             android:id="@+id/crop_overlay"
             android:layout_width="match_parent"
             android:layout_height="match_parent"

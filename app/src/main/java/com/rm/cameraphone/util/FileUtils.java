@@ -68,6 +68,7 @@ public class FileUtils {
             FileOutputStream fos = new FileOutputStream(outputPath);
             target.compress(Bitmap.CompressFormat.JPEG, 100, fos);
             fos.close();
+//            target.recycle();
         } catch (IOException e) {
             Log.e(TAG, e.getMessage());
         }

@@ -18,7 +18,7 @@ import static com.rm.cameraphone.util.DimenUtils.dp;
 /**
  * Created by alex
  */
-public class HorizontalWheelView extends View {
+public class WheelView extends View {
 
     private OnWheelScrollingListener mOnWheelScrollingListener;
     private float mLastScrollPoint;
@@ -38,23 +38,23 @@ public class HorizontalWheelView extends View {
     private float mCenterX;
     private float mCenterY;
 
-    public HorizontalWheelView(Context context) {
+    public WheelView(Context context) {
         super(context);
         initialize();
     }
 
-    public HorizontalWheelView(Context context, AttributeSet attrs) {
+    public WheelView(Context context, AttributeSet attrs) {
         super(context, attrs);
         initialize();
     }
 
-    public HorizontalWheelView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public WheelView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         initialize();
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    public HorizontalWheelView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+    public WheelView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
         initialize();
     }

@@ -12,10 +12,10 @@ import android.util.SparseArray;
 import com.rm.cameraphone.components.camera.CameraPreviewSurface;
 import com.rm.cameraphone.constants.FlashSwitcherConstants;
 import com.rm.cameraphone.events.OnCameraFocusedListener;
-import com.rm.cameraphone.util.bitmap.Bitmaps;
 import com.rm.cameraphone.util.DispatchUtils;
 import com.rm.cameraphone.util.FileUtils;
 import com.rm.cameraphone.util.SharedMap;
+import com.rm.cameraphone.util.bitmap.Bitmaps;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,6 +27,8 @@ import static com.rm.cameraphone.constants.FileContants.OUTPUT_PHOTO;
 import static com.rm.cameraphone.constants.FileContants.OUTPUT_VIDEO;
 import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_PREVIEW;
 import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_SHOT_PATH;
+import static com.rm.cameraphone.util.DimenUtils.ORIENTATIONS;
+import static com.rm.cameraphone.util.DimenUtils.getScreenOrientation;
 import static com.rm.cameraphone.util.DispatchUtils.runOnUiThread;
 
 /**
@@ -64,7 +66,6 @@ public class CameraWorker extends BaseWorker {
 
     public CameraWorker(Activity host) {
         super(host);
-
         mParameters = new SparseArray<>();
     }
 
@@ -159,8 +160,12 @@ public class CameraWorker extends BaseWorker {
         return new Runnable() {
             @Override
             public void run() {
-                Log.d(TAG, "TAKE PICTURE");
-                mCamera.takePicture(null, null, mOnPictureTaken);
+                try {
+                    Log.d(TAG, "TAKE PICTURE");
+                    mCamera.takePicture(null, null, mOnPictureTaken);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         };
     }
@@ -191,7 +196,12 @@ public class CameraWorker extends BaseWorker {
                     }
                     e.printStackTrace();
                 } finally {
-                    SharedMap.holder().put(KEY_CAMERA_SHOT_PATH, new WeakReference<Object>(mCurOutputFile.toString()));
+                    if (mCurOutputFile != null) {
+                        SharedMap.holder().put(
+                                KEY_CAMERA_SHOT_PATH,
+                                new WeakReference<Object>(mCurOutputFile.toString())
+                        );
+                    }
                     releaseMediaRecorder();
                     mCamera.lock();
                 }
@@ -252,6 +262,16 @@ public class CameraWorker extends BaseWorker {
         });
     }
 
+    public void clearPreview(final Runnable mainThreadCallback) {
+        DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                mTaskClearPreview.run();
+                runOnUiThread(mainThreadCallback);
+            }
+        });
+    }
+
     public void pausePreview(final Runnable mainThreadCallback) {
         DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
             @Override
@@ -293,6 +313,15 @@ public class CameraWorker extends BaseWorker {
         });
     }
 
+    public void startFocusing() {
+        DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
+            @Override
+            public void run() {
+                tryFocus();
+            }
+        });
+    }
+
     public void setFlashMode(int flashModeKey) {
         Camera.Parameters parameters;
         String flashMode = null;
@@ -321,6 +350,10 @@ public class CameraWorker extends BaseWorker {
         parameters.setFlashMode(flashMode);
         mParameters.append(mCurCameraId, parameters);
         mCamera.setParameters(parameters);
+    }
+
+    public boolean hasFrontFacingCamera() {
+        return Camera.getNumberOfCameras() > 1;
     }
 
     public void savePhotoToGallery() {
@@ -415,7 +448,6 @@ public class CameraWorker extends BaseWorker {
     private synchronized boolean prepareVideoRecorder() {
         mCurOutputFile = FileUtils.generateOutputFile(OUTPUT_VIDEO);
         if (mCurOutputFile == null) return false;
-
         mCamera.unlock();
 
         mMediaRecorder = new MediaRecorder();
@@ -427,7 +459,7 @@ public class CameraWorker extends BaseWorker {
         mMediaRecorder.setOutputFile(mCurOutputFile.toString());
         mMediaRecorder.setPreviewDisplay(mCameraPreview.getHolder().getSurface());
         mMediaRecorder.setMaxDuration(MAX_VIDEO_DURATION);
-        mMediaRecorder.setOrientationHint(mCurCameraId == Camera.CameraInfo.CAMERA_FACING_BACK ? 90 : 270);
+        mMediaRecorder.setOrientationHint(getRecorderRotationHint());
 
         mMediaRecorder.setOnInfoListener(new MediaRecorder.OnInfoListener() {
             @Override
@@ -468,6 +500,33 @@ public class CameraWorker extends BaseWorker {
             mCamera.release();
             mCamera = null;
         }
+    }
+
+    private void tryFocus() {
+        if (mCamera != null) {
+            try {
+                Camera.Parameters p = mCamera.getParameters();
+                if (!p.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_AUTO)) return;
+
+                p.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+
+                mCamera.setParameters(p);
+                mCamera.autoFocus(null);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private int getRecorderRotationHint() {
+        int curRotation = getScreenOrientation();
+        int screenDegree = ORIENTATIONS.get(curRotation);
+
+        final boolean isHorizontal = screenDegree == 270 || screenDegree == 90;
+        final boolean isBackFacing = mCurCameraId == Camera.CameraInfo.CAMERA_FACING_BACK;
+
+        if (isHorizontal) return isBackFacing ? 0 : 180;
+        else return isBackFacing ? 90 : 270;
     }
 
     private int getCameraId(boolean useFrontCamera) {

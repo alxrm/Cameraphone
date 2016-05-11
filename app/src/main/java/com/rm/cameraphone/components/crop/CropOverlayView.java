@@ -22,7 +22,7 @@ import static com.rm.cameraphone.util.DimenUtils.dp;
 /**
  * Created by alex
  */
-public class OverlayView extends View {
+public class CropOverlayView extends View {
 
     public static final int DEFAULT_CROP_GRID_ROW_COUNT = 2;
     public static final int DEFAULT_CROP_GRID_COLUMN_COUNT = 2;
@@ -53,30 +53,21 @@ public class OverlayView extends View {
 
     private OverlayViewChangeListener mCallback;
 
-    public OverlayView(Context context) {
+    public CropOverlayView(Context context) {
         this(context, null);
     }
 
-    public OverlayView(Context context, AttributeSet attrs) {
+    public CropOverlayView(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public OverlayView(Context context, AttributeSet attrs, int defStyle) {
+    public CropOverlayView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         init();
     }
 
-    public OverlayViewChangeListener getOverlayViewChangeListener() {
-        return mCallback;
-    }
-
     public void setOverlayViewChangeListener(OverlayViewChangeListener callback) {
         mCallback = callback;
-    }
-
-    @NonNull
-    public RectF getCropViewRect() {
-        return mCropViewRect;
     }
 
     public void setShowCropGrid(boolean showCropGrid) {
@@ -84,25 +75,12 @@ public class OverlayView extends View {
         invalidate();
     }
 
-    public float getTargetAspectRatio() {
-        return mTargetAspectRatio;
-    }
-
-    /**
-     * This method sets aspect ratio for crop bounds.
-     *
-     * @param targetAspectRatio - aspect ratio for image crop (e.g. 1.77(7) for 16:9)
-     */
     public void setTargetAspectRatio(float targetAspectRatio) {
         mTargetAspectRatio = targetAspectRatio;
         setupCropBounds();
         postInvalidate();
     }
 
-    /**
-     * This method setups crop bounds rectangles for given aspect ratio and view size.
-     * {@link #mCropViewRect} is used to draw crop bounds - uses padding.
-     */
     public void setupCropBounds() {
         int height = (int) (mThisWidth / mTargetAspectRatio);
         if (height > mThisHeight) {
@@ -230,7 +208,7 @@ public class OverlayView extends View {
     }
 
     /**
-     * * The order of the corners is:
+     * Order of the corners
      * 0------->1
      * ^        |
      * |        |
@@ -269,16 +247,6 @@ public class OverlayView extends View {
         }
     }
 
-    /**
-     * * The order of the corners in the float array is:
-     * 0------->1
-     * ^        |
-     * |        |
-     * |        v
-     * 3<-------2
-     *
-     * @return - index of corner that is being dragged
-     */
     private int getCurrentTouchCorner(float touchX, float touchY) {
         int closestPointIndex = -1;
         double closestPointDistance = mTouchPointThreshold;
@@ -293,11 +261,6 @@ public class OverlayView extends View {
         return closestPointIndex;
     }
 
-    /**
-     * This method draws dimmed area around the crop bounds.
-     *
-     * @param canvas - valid canvas object
-     */
     protected void drawDimmedLayer(@NonNull Canvas canvas) {
         canvas.save();
         canvas.clipRect(mCropViewRect, Region.Op.DIFFERENCE);

@@ -5,7 +5,6 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.TimeInterpolator;
 import android.animation.ValueAnimator;
-import android.content.ComponentCallbacks2;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -13,6 +12,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.rm.cameraphone.R;
@@ -33,6 +33,7 @@ import com.rm.cameraphone.events.OnFlashModeListener;
 import com.rm.cameraphone.events.OnSwipeListener;
 import com.rm.cameraphone.events.VideoPlayerCallbacks;
 import com.rm.cameraphone.util.Animators;
+import com.rm.cameraphone.util.DispatchUtils;
 import com.rm.cameraphone.util.PermissionUtils;
 import com.rm.cameraphone.util.SharedMap;
 import com.rm.cameraphone.worker.CameraWorker;
@@ -50,6 +51,9 @@ import static com.rm.cameraphone.constants.FlashSwitcherConstants.FLASH_MODE_AUT
 import static com.rm.cameraphone.constants.PermissionConstants.INITIAL_REQUEST;
 import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_PREVIEW;
 import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_SHOT_PATH;
+import static com.rm.cameraphone.util.DimenUtils.dp;
+import static com.rm.cameraphone.util.DimenUtils.width;
+import static com.rm.cameraphone.util.DispatchUtils.cleanUp;
 import static com.rm.cameraphone.util.Interpolators.DECELERATE;
 import static com.rm.cameraphone.util.Interpolators.OVERSHOOT;
 
@@ -81,6 +85,8 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     private int mCurrentFlashMode = FLASH_MODE_AUTO;
     private int mCurrentCameraMode = CAMERA_MODE_PHOTO;
     private int mCurrentShotCameraMode;
+
+    private String mImagePath;
 
     private View.OnClickListener mActionVideoListener;
     private View.OnClickListener mActionCropListener;
@@ -140,7 +146,11 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mActionCropListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                PhotoCropActivity.start(MainActivity.this, null);
+                mCameraPreviewWrapper.setEnabled(true);
+                setupShotPreview(false);
+                animateSavingButtons(false);
+
+                PhotoCropActivity.start(MainActivity.this, mImagePath);
             }
         };
 
@@ -226,6 +236,19 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        animateOverlay(true);
+
+        DispatchUtils.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                animateOverlay(false);
+            }
+        }, 500);
+    }
+
+    @Override
     protected void onStop() {
         super.onStop();
         cleanUp();
@@ -298,6 +321,11 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
 
     @Override
     public void onChangeCamera() {
+        if (!mWorker.hasFrontFacingCamera()) {
+            Toast.makeText(this, "This device has no front facing camera", Toast.LENGTH_LONG).show();
+            return;
+        }
+
         setControlsEnabled(false);
         animateOverlay(true);
 
@@ -316,8 +344,8 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     public void onCameraChanged() {
         mCameraPreview = (CameraPreviewSurface) SharedMap.holder().get(KEY_CAMERA_PREVIEW);
 
-        mCameraPreviewWrapper.addView(mCameraPreview);
         mCameraPreviewWrapper.setEnabled(true);
+        mCameraPreviewWrapper.addView(mCameraPreview);
 
         setupFlashMode();
         setControlsEnabled(true);
@@ -415,10 +443,10 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mCaptureWrapper.animateToState(show ? STATE_TRANSPARENT :
                 mCurrentCameraMode == CAMERA_MODE_PHOTO ? STATE_OPAQUE : STATE_TRANSPARENT);
 
-        final String previewPath = (String) SharedMap.holder().get(KEY_CAMERA_SHOT_PATH);
-        if (previewPath == null) return;
+        mImagePath = (String) SharedMap.holder().get(KEY_CAMERA_SHOT_PATH);
+        if (mImagePath == null) return;
 
-        mVideoPreviewPlayer.setVideoPath(previewPath);
+        mVideoPreviewPlayer.setVideoPath(mImagePath);
 
         if (show) {
             mVideoPreviewPlayer.showPreview();
@@ -435,13 +463,15 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         if (!show) {
             Glide.clear(mPhotoShotPreview);
             SharedMap.holder().remove(KEY_CAMERA_SHOT_PATH);
-            cleanUp();
             return;
         }
 
-        final String previewPath = (String) SharedMap.holder().get(KEY_CAMERA_SHOT_PATH);
-        if (previewPath != null) {
-            Glide.with(this).load(previewPath).sizeMultiplier(0.8F).into(mPhotoShotPreview);
+        mImagePath = (String) SharedMap.holder().get(KEY_CAMERA_SHOT_PATH);
+        if (mImagePath != null) {
+            Glide.with(this)
+                    .load(mImagePath)
+                    .override((int) width(), dp(200))
+                    .into(mPhotoShotPreview);
         }
     }
 
@@ -566,10 +596,5 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
                 .setDuration(300)
                 .setInterpolator(DECELERATE)
                 .start();
-    }
-
-    public void cleanUp() {
-        Glide.get(this).clearMemory();
-        Glide.get(this).trimMemory(ComponentCallbacks2.TRIM_MEMORY_MODERATE);
     }
 }

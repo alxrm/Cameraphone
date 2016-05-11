@@ -1,5 +1,6 @@
 package com.rm.cameraphone.util.bitmap;
 
+import android.graphics.Rect;
 import android.graphics.RectF;
 
 /**
@@ -57,7 +58,7 @@ public class RectUtils {
      * @param array array of 2D coordinates
      * @return smallest rectangle containing coordinates
      */
-    public static RectF trapToRect(float[] array) {
+    public static RectF trapToRectF(float[] array) {
         RectF r = new RectF(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY,
                 Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY);
         for (int i = 1; i < array.length; i += 2) {
@@ -67,6 +68,20 @@ public class RectUtils {
             r.top = Math.min(y, r.top);
             r.right = Math.max(x, r.right);
             r.bottom = Math.max(y, r.bottom);
+        }
+        r.sort();
+        return r;
+    }
+
+    public static Rect trapToRect(float[] array) {
+        Rect r = new Rect(Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE);
+        for (int i = 1; i < array.length; i += 2) {
+            float x = array[i - 1];
+            float y = array[i];
+            r.left = (int) Math.min(x, r.left);
+            r.top = (int) Math.min(y, r.top);
+            r.right = (int) Math.max(x, r.right);
+            r.bottom = (int) Math.max(y, r.bottom);
         }
         r.sort();
         return r;

@@ -1,11 +1,9 @@
 package com.rm.cameraphone.components.camera;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
+import android.content.Context;
 import android.hardware.Camera;
 import android.util.Log;
-import android.util.SparseIntArray;
-import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
@@ -16,6 +14,9 @@ import com.rm.cameraphone.util.DispatchUtils;
 import java.text.MessageFormat;
 import java.util.List;
 
+import static com.rm.cameraphone.util.DimenUtils.ORIENTATIONS;
+import static com.rm.cameraphone.util.DimenUtils.getScreenOrientation;
+
 /**
  * Created by alex
  */
@@ -23,16 +24,7 @@ import java.util.List;
 public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.Callback, Camera.AutoFocusCallback {
 
     private static final String TAG = "CameraPreview";
-    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
 
-    static {
-        ORIENTATIONS.append(Surface.ROTATION_0, 0);
-        ORIENTATIONS.append(Surface.ROTATION_90, 90);
-        ORIENTATIONS.append(Surface.ROTATION_180, 180);
-        ORIENTATIONS.append(Surface.ROTATION_270, 270);
-    }
-
-    private Activity mActivity;
     private Camera mCamera;
     private Camera.Size mPreviewSize;
     private Camera.CameraInfo mCameraInfo;
@@ -40,19 +32,18 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
     private OnCameraFocusedListener mFocusListener;
 
     private SurfaceHolder mHolder;
+
     private Runnable mTaskStartPreview;
     private Runnable mTaskStopPreview;
     private Runnable mTaskAutoFocus;
 
     private int mDisplayOrientation;
     private boolean mHasAutoFocus;
-    private boolean mHasContiniousFocus;
 
-    public CameraPreviewSurface(Activity activity, Camera camera, Camera.CameraInfo cameraInfo,
+    public CameraPreviewSurface(Context context, Camera camera, Camera.CameraInfo cameraInfo,
                                 OnCameraFocusedListener focusListener) {
-        super(activity);
+        super(context);
 
-        this.mActivity = activity;
         this.mCamera = camera;
         this.mSupportedPreviewSizes = camera.getParameters().getSupportedPreviewSizes();
         this.mCameraInfo = cameraInfo;
@@ -60,7 +51,6 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
 
         List<String> supportedFocusModes = camera.getParameters().getSupportedFocusModes();
         mHasAutoFocus = supportedFocusModes != null && supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO);
-        mHasContiniousFocus = supportedFocusModes != null && supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
 
         mDisplayOrientation = getScreenOrientation();
 
@@ -145,9 +135,7 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
 
                     Camera.Parameters parameters = mCamera.getParameters();
 
-                    if (mHasContiniousFocus)
-                        parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
-                    else if (mHasAutoFocus)
+                    if (mHasAutoFocus)
                         parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
 
                     parameters.setRotation(rotation);
@@ -191,15 +179,11 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
     }
 
     public void takePicture() {
-        if (mHasAutoFocus || mHasContiniousFocus) {
+        if (mHasAutoFocus) {
             startFocusing();
         } else {
             focused();
         }
-    }
-
-    public void onPictureTaken() {
-        clearCameraFocus();
     }
 
     @Override
@@ -220,19 +204,6 @@ public class CameraPreviewSurface extends SurfaceView implements SurfaceHolder.C
         if (mFocusListener != null) {
             mFocusListener.onFocused(mCamera);
         }
-    }
-
-    private void clearCameraFocus() {
-        if (mHasAutoFocus) {
-            mCamera.cancelAutoFocus();
-        }
-
-        stopPreview();
-        startPreview(getHolder());
-    }
-
-    private int getScreenOrientation() {
-        return mActivity.getWindowManager().getDefaultDisplay().getRotation();
     }
 
     // utility methods
