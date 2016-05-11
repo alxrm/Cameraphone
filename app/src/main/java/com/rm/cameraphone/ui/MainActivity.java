@@ -85,6 +85,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     private int mCurrentFlashMode = FLASH_MODE_AUTO;
     private int mCurrentCameraMode = CAMERA_MODE_PHOTO;
     private int mCurrentShotCameraMode;
+    private boolean mIsInShotPreviewMode = false;
 
     private String mImagePath;
     private Runnable mTaskClearPreview;
@@ -162,7 +163,16 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
             public void onClick(View v) {
                 PhotoCropActivity.start(MainActivity.this, mImagePath);
                 mWorker.savePhotoToGallery();
-                animateOverlay(true);
+
+                DispatchUtils.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        animateOverlay(true);
+                        setupShotPreview(false);
+                        animateSavingButtons(false);
+                        animateControlsForSaving(true);
+                    }
+                }, 200);
 
                 onStopPreview();
             }
@@ -191,6 +201,8 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
                 mCameraPreviewWrapper.setEnabled(true);
+                mCaptureButton.show();
+
                 setControlsEnabled(true);
             }
         });
@@ -259,7 +271,6 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         DispatchUtils.runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                animateToSavingState(false, mCurrentCameraMode);
                 setControlsEnabled(false);
                 mCameraPreviewWrapper.setEnabled(false);
             }
@@ -288,21 +299,22 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     protected void onStart() {
         super.onStart();
         DispatchUtils.cancelRunOnUiThread(mTaskClearPreview);
-        animateToSavingState(false, mCurrentCameraMode);
 
         if (mWorker.isReleased()) {
-            Log.d("MainActivity", "SHOULD NOT BE HERE");
             mWorker.setupPreview(new Runnable() {
                 @Override
                 public void run() {
-                    onCameraChanged();
+                    reloadCamera();
                 }
             });
         } else {
+            if (mIsInShotPreviewMode) return;
+
             mWorker.resumePreview(new Runnable() {
                 @Override
                 public void run() {
                     mCameraPreviewWrapper.setEnabled(true);
+                    mCaptureButton.show();
                     setControlsEnabled(true);
                     animateOverlay(false);
                 }
@@ -349,6 +361,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     @Override
     public void onStopRecord() {
         animateControlsForCapturing(true);
+        setControlsEnabled(false);
 
         mWorker.stopVideoCapturing(new Runnable() {
             @Override
@@ -383,6 +396,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
             return;
         }
 
+        mCaptureButton.show();
         setControlsEnabled(false);
         animateOverlay(true);
 
@@ -477,9 +491,14 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mCameraPreviewWrapper.setEnabled(true);
         mCameraPreviewWrapper.addView(mCameraPreview);
 
-        setupFlashMode();
-        setControlsEnabled(true);
-        animateOverlay(false);
+        if (mIsInShotPreviewMode) {
+            animateOverlay(true);
+            animateToSavingState(true, mCurrentShotCameraMode);
+        } else {
+            setupFlashMode();
+            setControlsEnabled(true);
+            animateOverlay(false);
+        }
     }
 
     private void setupFlashMode() {
@@ -494,6 +513,8 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     }
 
     private void setupShotPreview(boolean show) {
+        mIsInShotPreviewMode = show;
+
         if (mCurrentShotCameraMode == CAMERA_MODE_PHOTO) {
             setupPhotoShotPreview(show);
         } else {
@@ -544,7 +565,6 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     }
 
     private void setControlsEnabled(boolean enabled) {
-        mCaptureButton.show();
         mFlashSwitcher.setClickable(enabled);
         mCaptureButton.setEnabled(enabled);
         mCameraSwitcher.setEnabled(enabled);
