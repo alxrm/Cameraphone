@@ -10,10 +10,10 @@ import android.graphics.RectF;
 public class Bitmaps {
 
     public static Bitmap rotateBitmap(Bitmap bitmap, float degrees) {
-        if (bitmap.isRecycled()) return null;
+        if (bitmap == null || bitmap.isRecycled()) return null;
 
         Matrix matrix = new Matrix();
-        matrix.postRotate(degrees);
+        matrix.postRotate(degrees < 0 ? 360 + degrees : degrees);
         Bitmap newBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, false);
 
         if (newBitmap != bitmap) {
@@ -24,7 +24,7 @@ public class Bitmaps {
     }
 
     public static Bitmap cropAndRotate(Bitmap bitmap, RectF cropBounds, RectF imgBounds, float scale, float degrees) {
-        if (bitmap.isRecycled()) return null;
+        if (bitmap == null || bitmap.isRecycled()) return null;
 
         if (degrees != 0)
             return cropBitmap(rotateBitmap(bitmap, degrees), cropBounds, imgBounds, scale);
@@ -33,13 +33,12 @@ public class Bitmaps {
     }
 
     public static Bitmap cropBitmap(Bitmap bitmap, RectF cropBounds, RectF imgBounds, float scale) {
-        if (bitmap.isRecycled()) return null;
+        if (bitmap == null || bitmap.isRecycled()) return null;
 
         final int top = Math.round((cropBounds.top - imgBounds.top) / scale);
         final int left = Math.round((cropBounds.left - imgBounds.left) / scale);
         final int width = Math.round(cropBounds.width() / scale);
         final int height = Math.round(cropBounds.height() / scale);
-
 
         Bitmap res = Bitmap.createBitmap(
                 bitmap,

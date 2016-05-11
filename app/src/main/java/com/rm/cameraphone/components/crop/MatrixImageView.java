@@ -49,6 +49,7 @@ public class MatrixImageView extends ImageView {
     protected boolean mBitmapLaidOut = false;
 
     private String mImageInputPath;
+    private String mImageOutputPath;
 
     /**
      * Interface for rotation and scale change notifying.
@@ -91,8 +92,13 @@ public class MatrixImageView extends ImageView {
         return mImageInputPath;
     }
 
+    public String getImageOutputPath() {
+        return mImageOutputPath;
+    }
+
     public void setImagePath(@NonNull String path) throws Exception {
         mImageInputPath = path;
+        mImageOutputPath = path.substring(0, path.lastIndexOf(".")) + "_EDIT" + ".jpg";
 
         Glide.with(getContext())
                 .load(path)
@@ -101,8 +107,9 @@ public class MatrixImageView extends ImageView {
                 .into(new SimpleTarget<Bitmap>((int) width(), dp(200)) {
                     @Override
                     public void onResourceReady(Bitmap resource, GlideAnimation<? super Bitmap> glideAnimation) {
-                        Log.d("MatrixImageView", "onResourceReady");
                         mBitmapDecoded = true;
+                        mBitmapLaidOut = false;
+
                         setImageBitmap(resource);
                     }
                 });

@@ -9,7 +9,7 @@ import android.view.ScaleGestureDetector;
 /**
  * Created by alex
  */
-public class GestureImageView extends CropableImageView {
+public class GestureImageView extends CroppingImageView {
 
     private static final int DOUBLE_TAP_ZOOM_DURATION = 200;
     private static final int DOUBLE_TAP_SCALE_STEPS = 5;

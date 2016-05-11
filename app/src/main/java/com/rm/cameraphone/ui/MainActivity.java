@@ -113,6 +113,13 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mCameraPreviewWrapper.setOnSwipeListener(this);
         mCameraPreviewWrapper.setEnabled(false);
 
+        mCameraPreviewWrapper.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mWorker.startFocusing();
+            }
+        });
+
         mCameraSwitcher.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -146,11 +153,18 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mActionCropListener = new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mCameraPreviewWrapper.setEnabled(true);
-                setupShotPreview(false);
-                animateSavingButtons(false);
-
                 PhotoCropActivity.start(MainActivity.this, mImagePath);
+
+                DispatchUtils.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mCameraPreviewWrapper.setEnabled(true);
+                        setupShotPreview(false);
+                        animateSavingButtons(false);
+
+                        mWorker.savePhotoToGallery();
+                    }
+                }, 200);
             }
         };
 

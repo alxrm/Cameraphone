@@ -12,6 +12,7 @@ import com.rm.cameraphone.events.CropBoundsChangeListener;
 import com.rm.cameraphone.util.Animators;
 import com.rm.cameraphone.util.DispatchUtils;
 import com.rm.cameraphone.util.FileUtils;
+import com.rm.cameraphone.util.SharedMap;
 import com.rm.cameraphone.util.bitmap.Bitmaps;
 import com.rm.cameraphone.util.bitmap.RectUtils;
 
@@ -19,10 +20,12 @@ import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
 
+import static com.rm.cameraphone.constants.SharedMapConstants.KEY_CAMERA_CROP_RESULT;
+
 /**
  * Created by alex
  */
-public class CropableImageView extends MatrixImageView {
+public class CroppingImageView extends MatrixImageView {
 
     public static final int DEFAULT_IMAGE_TO_CROP_BOUNDS_ANIM_DURATION = 500;
     public static final float DEFAULT_MAX_SCALE_MULTIPLIER = 10.0f;
@@ -40,15 +43,15 @@ public class CropableImageView extends MatrixImageView {
 
     private float mMaxScale, mMinScale;
 
-    public CropableImageView(Context context) {
+    public CroppingImageView(Context context) {
         this(context, null);
     }
 
-    public CropableImageView(Context context, AttributeSet attrs) {
+    public CroppingImageView(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public CropableImageView(Context context, AttributeSet attrs, int defStyle) {
+    public CroppingImageView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
     }
 
@@ -59,7 +62,7 @@ public class CropableImageView extends MatrixImageView {
         DispatchUtils.getCropQueue().postRunnable(new Runnable() {
             @Override
             public void run() {
-                File output = new File(getImageInputPath());
+                File output = new File(getImageOutputPath());
 
                 RectF imageCorners = RectUtils.trapToRectF(mCurrentImageCorners);
                 float scale = getCurrentScale();
@@ -68,11 +71,9 @@ public class CropableImageView extends MatrixImageView {
                 final Bitmap res = Bitmaps.cropAndRotate(getViewBitmap(), mCropRect, imageCorners, scale, angle);
 
                 FileUtils.writeBitmapToDevice(res, output);
-                FileUtils.addFileToSystemMedia(output);
+                SharedMap.holder().put(KEY_CAMERA_CROP_RESULT, new WeakReference<Object>(output.toString()));
 
-                mBitmapDecoded = false;
-
-                post(mainThreadCallback);
+                DispatchUtils.runOnUiThread(mainThreadCallback);
             }
         });
     }
@@ -182,7 +183,7 @@ public class CropableImageView extends MatrixImageView {
 
             if (animate) {
                 post(mWrapCropBoundsRunnable = new WrapCropBoundsRunnable(
-                        CropableImageView.this, DEFAULT_IMAGE_TO_CROP_BOUNDS_ANIM_DURATION, currentX, currentY, deltaX, deltaY,
+                        CroppingImageView.this, DEFAULT_IMAGE_TO_CROP_BOUNDS_ANIM_DURATION, currentX, currentY, deltaX, deltaY,
                         currentScale, deltaScale, willImageWrapCropBoundsAfterTranslate));
             } else {
                 postTranslate(deltaX, deltaY);
@@ -292,7 +293,7 @@ public class CropableImageView extends MatrixImageView {
         final float oldScale = getCurrentScale();
         final float deltaScale = scale - oldScale;
 
-        post(mZoomImageToPositionRunnable = new ZoomImageToPosition(CropableImageView.this,
+        post(mZoomImageToPositionRunnable = new ZoomImageToPosition(CroppingImageView.this,
                 durationMs, oldScale, deltaScale, centerX, centerY));
     }
 
@@ -327,7 +328,7 @@ public class CropableImageView extends MatrixImageView {
 
     private static class WrapCropBoundsRunnable implements Runnable {
 
-        private final WeakReference<CropableImageView> mCropImageView;
+        private final WeakReference<CroppingImageView> mCropImageView;
 
         private final long mDurationMs, mStartTime;
         private final float mOldX, mOldY;
@@ -336,7 +337,7 @@ public class CropableImageView extends MatrixImageView {
         private final float mDeltaScale;
         private final boolean mWillBeImageInBoundsAfterTranslate;
 
-        public WrapCropBoundsRunnable(CropableImageView cropImageView,
+        public WrapCropBoundsRunnable(CroppingImageView cropImageView,
                                       long durationMs,
                                       float oldX, float oldY,
                                       float centerDiffX, float centerDiffY,
@@ -358,7 +359,7 @@ public class CropableImageView extends MatrixImageView {
 
         @Override
         public void run() {
-            CropableImageView cropImageView = mCropImageView.get();
+            CroppingImageView cropImageView = mCropImageView.get();
             if (cropImageView == null) {
                 return;
             }
@@ -384,7 +385,7 @@ public class CropableImageView extends MatrixImageView {
 
     private static class ZoomImageToPosition implements Runnable {
 
-        private final WeakReference<CropableImageView> mCropImageView;
+        private final WeakReference<CroppingImageView> mCropImageView;
 
         private final long mDurationMs, mStartTime;
         private final float mOldScale;
@@ -392,7 +393,7 @@ public class CropableImageView extends MatrixImageView {
         private final float mDestX;
         private final float mDestY;
 
-        public ZoomImageToPosition(CropableImageView cropImageView,
+        public ZoomImageToPosition(CroppingImageView cropImageView,
                                    long durationMs,
                                    float oldScale, float deltaScale,
                                    float destX, float destY) {
@@ -409,7 +410,7 @@ public class CropableImageView extends MatrixImageView {
 
         @Override
         public void run() {
-            CropableImageView cropImageView = mCropImageView.get();
+            CroppingImageView cropImageView = mCropImageView.get();
             if (cropImageView == null) {
                 return;
             }

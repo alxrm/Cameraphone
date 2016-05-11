@@ -17,6 +17,8 @@ import static com.rm.cameraphone.util.DimenUtils.width;
 public class SwipingFrameLayout extends FrameLayout {
 
     private OnSwipeListener mOnSwipeListener;
+    private OnClickListener mOnClickListener;
+
     private float mInitialX = Float.NaN;
     private float mScreenWidth;
     private boolean mIsEnabled;
@@ -57,12 +59,22 @@ public class SwipingFrameLayout extends FrameLayout {
                 onMove(event.getX(), true);
                 break;
             case MotionEvent.ACTION_UP:
-                onMove(event.getX(), false);
-                mInitialX = Float.NaN;
+                if (mInitialX == event.getX()) {
+                    onClick();
+                } else {
+                    onMove(event.getX(), false);
+                    mInitialX = Float.NaN;
+                }
                 break;
         }
 
         return true;
+    }
+
+    private void onClick() {
+        if (mOnClickListener != null) {
+            mOnClickListener.onClick(this);
+        }
     }
 
     private void onMove(float currentX, boolean isDown) {
@@ -90,5 +102,10 @@ public class SwipingFrameLayout extends FrameLayout {
 
     public void setOnSwipeListener(OnSwipeListener onSwipeListener) {
         mOnSwipeListener = onSwipeListener;
+    }
+
+    @Override
+    public void setOnClickListener(OnClickListener onClickListener) {
+        mOnClickListener = onClickListener;
     }
 }

@@ -62,13 +62,17 @@ public class FileUtils {
     }
 
     public static void writeBitmapToDevice(Bitmap target, File outputPath) {
+        writeBitmapToDevice(target, outputPath, Bitmap.CompressFormat.WEBP);
+    }
+
+    public static void writeBitmapToDevice(Bitmap target, File outputPath, Bitmap.CompressFormat compressFormat) {
         if (target == null || outputPath == null) return;
 
         try {
             FileOutputStream fos = new FileOutputStream(outputPath);
-            target.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+            target.compress(compressFormat, 100, fos);
             fos.close();
-//            target.recycle();
+            target.recycle();
         } catch (IOException e) {
             Log.e(TAG, e.getMessage());
         }
@@ -82,9 +86,8 @@ public class FileUtils {
                 new MediaScannerConnection.OnScanCompletedListener() {
                     @Override
                     public void onScanCompleted(String path, Uri uri) {
-                        Log.v(TAG, "file " + path + (uri == null ? " scan failed" : " was scanned seccessfully"));
+                        Log.v(TAG, "file " + path + (uri == null ? " scan failed" : " was scanned successfully"));
                     }
                 });
     }
-
 }
