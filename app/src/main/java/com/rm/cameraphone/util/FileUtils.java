@@ -62,7 +62,7 @@ public class FileUtils {
     }
 
     public static void writeBitmapToDevice(Bitmap target, File outputPath) {
-        writeBitmapToDevice(target, outputPath, Bitmap.CompressFormat.WEBP);
+        writeBitmapToDevice(target, outputPath, Bitmap.CompressFormat.JPEG);
     }
 
     public static void writeBitmapToDevice(Bitmap target, File outputPath, Bitmap.CompressFormat compressFormat) {

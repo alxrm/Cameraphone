@@ -87,6 +87,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     private int mCurrentShotCameraMode;
 
     private String mImagePath;
+    private Runnable mTaskClearPreview;
 
     private View.OnClickListener mActionVideoListener;
     private View.OnClickListener mActionCropListener;
@@ -96,6 +97,10 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.inject(this);
+
+        animateOverlay(true);
+
+        registerTasks();
 
         setupViews();
         onTryCamera();
@@ -123,8 +128,10 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         mCameraSwitcher.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mCameraSwitcher.toggle();
-                onChangeCamera();
+                if (mCameraSwitcher.isEnabled()) {
+                    mCameraSwitcher.toggle();
+                    onChangeCamera();
+                }
             }
         });
 
@@ -154,17 +161,10 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
             @Override
             public void onClick(View v) {
                 PhotoCropActivity.start(MainActivity.this, mImagePath);
+                mWorker.savePhotoToGallery();
+                animateOverlay(true);
 
-                DispatchUtils.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        mCameraPreviewWrapper.setEnabled(true);
-                        setupShotPreview(false);
-                        animateSavingButtons(false);
-
-                        mWorker.savePhotoToGallery();
-                    }
-                }, 200);
+                onStopPreview();
             }
         };
 
@@ -196,6 +196,27 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         });
     }
 
+    private void registerTasks() {
+        mTaskClearPreview = registerTasksClearPreview();
+    }
+
+    private Runnable registerTasksClearPreview() {
+        return new Runnable() {
+            @Override
+            public void run() {
+                animateOverlay(true);
+                mCameraPreviewWrapper.setEnabled(false);
+                mCameraPreviewWrapper.removeAllViews();
+
+                if (mCameraPreview != null) {
+                    mCameraPreview.getHolder().removeCallback(mCameraPreview);
+                }
+
+                mWorker.clearPreview();
+            }
+        };
+    }
+
     private void onTryCamera() {
         final String[] permissionsNeeded = {
                 Manifest.permission.CAMERA,
@@ -212,30 +233,37 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         }
     }
 
+
     @Override
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (PermissionUtils.verifyPermissions(grantResults)) onSetupPreview();
+        if (PermissionUtils.verifyPermissions(grantResults)) {
+            onSetupPreview();
+        }
     }
 
     private void onSetupPreview() {
         mWorker.setupPreview(new Runnable() {
             @Override
             public void run() {
-                mCameraPreview = (CameraPreviewSurface) SharedMap.holder().get(KEY_CAMERA_PREVIEW);
-                if (mCameraPreview == null) return;
-                if (mCameraPreview.getParent() != null) return;
-
-                mCameraPreviewWrapper.setEnabled(true);
-                mCameraPreviewWrapper.addView(mCameraPreview);
-
-                setupFlashMode();
-                setControlsEnabled(true);
-                animateOverlay(false);
+                reloadCamera();
             }
         });
+    }
+
+    private void onStopPreview() {
+        DispatchUtils.runOnUiThread(mTaskClearPreview, 10000);
+
+        DispatchUtils.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                animateToSavingState(false, mCurrentCameraMode);
+                setControlsEnabled(false);
+                mCameraPreviewWrapper.setEnabled(false);
+            }
+        }, 200);
     }
 
     @Override
@@ -247,25 +275,39 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
         }
 
         mVideoPreviewPlayer.pause();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        animateOverlay(true);
-
-        DispatchUtils.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                animateOverlay(false);
-            }
-        }, 500);
+        cleanUp();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        cleanUp();
+        onStopPreview();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        DispatchUtils.cancelRunOnUiThread(mTaskClearPreview);
+        animateToSavingState(false, mCurrentCameraMode);
+
+        if (mWorker.isReleased()) {
+            Log.d("MainActivity", "SHOULD NOT BE HERE");
+            mWorker.setupPreview(new Runnable() {
+                @Override
+                public void run() {
+                    onCameraChanged();
+                }
+            });
+        } else {
+            mWorker.resumePreview(new Runnable() {
+                @Override
+                public void run() {
+                    mCameraPreviewWrapper.setEnabled(true);
+                    setControlsEnabled(true);
+                    animateOverlay(false);
+                }
+            });
+        }
     }
 
     @Override
@@ -286,6 +328,7 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
 
     @Override
     public void onStartRecord() {
+        mCameraSwitcher.setEnabled(false);
         animateControlsForCapturing(false);
 
         mWorker.startVideoCapturing(new Runnable() {
@@ -356,14 +399,12 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
 
     @Override
     public void onCameraChanged() {
-        mCameraPreview = (CameraPreviewSurface) SharedMap.holder().get(KEY_CAMERA_PREVIEW);
-
-        mCameraPreviewWrapper.setEnabled(true);
-        mCameraPreviewWrapper.addView(mCameraPreview);
-
-        setupFlashMode();
-        setControlsEnabled(true);
-        animateOverlay(false);
+        DispatchUtils.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                reloadCamera();
+            }
+        }, 200);
     }
 
     @Override
@@ -426,6 +467,19 @@ public class MainActivity extends BaseActivity<CameraWorker> implements
     public void onVideoPlayerReady(int duration) {
         mVideoPreviewProgress.setMax(duration);
         mButtonAction.setOnClickListener(mActionVideoListener);
+    }
+
+    private void reloadCamera() {
+        mCameraPreview = (CameraPreviewSurface) SharedMap.holder().get(KEY_CAMERA_PREVIEW);
+        if (mCameraPreview == null) return;
+        if (mCameraPreview.getParent() != null) return;
+
+        mCameraPreviewWrapper.setEnabled(true);
+        mCameraPreviewWrapper.addView(mCameraPreview);
+
+        setupFlashMode();
+        setControlsEnabled(true);
+        animateOverlay(false);
     }
 
     private void setupFlashMode() {

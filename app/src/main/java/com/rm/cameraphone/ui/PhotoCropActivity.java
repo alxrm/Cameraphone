@@ -81,7 +81,7 @@ public class PhotoCropActivity extends BaseActivity<CropWorker> {
             @Override
             public void onClick(View v) {
                 mTarget.postRotate(-90);
-                mTarget.setImageToWrapCropBounds(false);
+                mTarget.setImageToWrapCropBounds();
                 mBtnReset.setVisibility(View.VISIBLE);
             }
         });
@@ -95,7 +95,7 @@ public class PhotoCropActivity extends BaseActivity<CropWorker> {
             @Override
             public void onWheelScroll(float delta, float totalDistance) {
                 mTarget.postRotate(delta / 10);
-                mTarget.setImageToWrapCropBounds(true);
+                mTarget.setImageToWrapCropBounds();
                 mBtnReset.setVisibility(View.VISIBLE);
             }
 

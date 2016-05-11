@@ -63,6 +63,8 @@ public class CameraWorker extends BaseWorker {
     private Camera.PictureCallback mOnPictureTaken;
     private Runnable mStopVideoHook;
     private Runnable mTakePictureHook;
+    private boolean mReleased = false;
+
 
     public CameraWorker(Activity host) {
         super(host);
@@ -86,22 +88,15 @@ public class CameraWorker extends BaseWorker {
 
     @Override
     public void onResume() {
-        if (mCamera != null) {
-            try {
-                mCamera.reconnect();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     @Override
     public void onPause() {
-
     }
 
     @Override
     public void onDestroy() {
+        Log.d("CameraWorker", "onDestroy");
         DispatchUtils.getCameraQueue().postRunnable(mTaskReleaseComponents);
     }
 
@@ -117,6 +112,7 @@ public class CameraWorker extends BaseWorker {
             @Override
             public void run() {
                 Log.d(TAG, "SETUP PREVIEW");
+
                 mCamera = getCameraInstance(mUsingFrontCamera);
                 if (mCamera == null) return;
 
@@ -135,6 +131,8 @@ public class CameraWorker extends BaseWorker {
                 );
 
                 SharedMap.holder().put(KEY_CAMERA_PREVIEW, new WeakReference<Object>(mCameraPreview));
+
+                setReleased(false);
             }
         };
     }
@@ -144,14 +142,9 @@ public class CameraWorker extends BaseWorker {
             @Override
             public void run() {
                 Log.d(TAG, "CLEAR PREVIEW");
-                if (mCamera == null) return;
+                releaseCamera();
 
-                try {
-                    mCamera.stopPreview();
-                    mCamera.release();
-                } catch (Exception e) {
-                    Log.e(TAG, e.getMessage());
-                }
+                setReleased(true);
             }
         };
     }
@@ -162,7 +155,11 @@ public class CameraWorker extends BaseWorker {
             public void run() {
                 try {
                     Log.d(TAG, "TAKE PICTURE");
-                    mCamera.takePicture(null, null, mOnPictureTaken);
+                    if (mCamera != null) {
+                        mCamera.takePicture(null, null, mOnPictureTaken);
+                    } else {
+                        runOnUiThread(mTakePictureHook);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -245,8 +242,6 @@ public class CameraWorker extends BaseWorker {
         return new Camera.PictureCallback() {
             @Override
             public void onPictureTaken(byte[] data, Camera camera) {
-//                if (mCameraPreview != null) mCameraPreview.onPictureTaken();
-
                 DispatchUtils.getFileQueue().postRunnable(generateTaskWriteFile(data));
             }
         };
@@ -256,27 +251,29 @@ public class CameraWorker extends BaseWorker {
         DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
             @Override
             public void run() {
+                Log.d("CameraWorker", "SETUP PREVIEW");
+
                 mTaskSetupPreview.run();
                 runOnUiThread(mainThreadCallback);
             }
         });
     }
 
-    public void clearPreview(final Runnable mainThreadCallback) {
-        DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
-            @Override
-            public void run() {
-                mTaskClearPreview.run();
-                runOnUiThread(mainThreadCallback);
-            }
-        });
+    public void clearPreview() {
+        DispatchUtils.getCameraQueue().postRunnable(mTaskClearPreview);
     }
 
     public void pausePreview(final Runnable mainThreadCallback) {
         DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
             @Override
             public void run() {
-                mCamera.stopPreview();
+                if (mCamera != null) {
+                    try {
+                        mCamera.stopPreview();
+                    } catch (Throwable e) {
+                        Log.e(TAG, e.getMessage());
+                    }
+                }
 
                 runOnUiThread(mainThreadCallback);
             }
@@ -287,11 +284,13 @@ public class CameraWorker extends BaseWorker {
         DispatchUtils.getCameraQueue().postRunnable(new Runnable() {
             @Override
             public void run() {
-                try {
-                    mCamera.reconnect();
-                    mCamera.startPreview();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                if (mCamera != null) {
+                    try {
+                        mCamera.reconnect();
+                        mCamera.startPreview();
+                    } catch (Throwable e) {
+                        Log.e(TAG, e.getMessage());
+                    }
                 }
 
                 runOnUiThread(mainThreadCallback);
@@ -354,6 +353,10 @@ public class CameraWorker extends BaseWorker {
 
     public boolean hasFrontFacingCamera() {
         return Camera.getNumberOfCameras() > 1;
+    }
+
+    public boolean isReleased() {
+        return mReleased;
     }
 
     public void savePhotoToGallery() {
@@ -485,7 +488,7 @@ public class CameraWorker extends BaseWorker {
         return true;
     }
 
-    private void releaseMediaRecorder(){
+    private synchronized void releaseMediaRecorder() {
         if (mMediaRecorder != null) {
             mMediaRecorder.reset();
             mMediaRecorder.release();
@@ -494,15 +497,18 @@ public class CameraWorker extends BaseWorker {
         }
     }
 
-    private void releaseCamera() {
+    private synchronized void releaseCamera() {
         if (mCamera != null) {
-            mCameraPreview.getHolder().removeCallback(mCameraPreview);
             mCamera.release();
             mCamera = null;
         }
     }
 
-    private void tryFocus() {
+    private void setReleased(boolean released) {
+        mReleased = released;
+    }
+
+    private synchronized void tryFocus() {
         if (mCamera != null) {
             try {
                 Camera.Parameters p = mCamera.getParameters();
