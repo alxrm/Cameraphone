@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <set
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:duration="200"
-    android:interpolator="@android:interpolator/decelerate_quad"
-    android:shareInterpolator="true"
-    android:fillBefore="true"
-    >
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:duration="200"
+	android:interpolator="@android:interpolator/decelerate_quad"
+	android:shareInterpolator="true"
+	android:fillBefore="true"
+	>
 
-    <translate
-        android:fromYDelta="-80%p"
-        android:toYDelta="0%p"/>
+	<translate
+		android:fromYDelta="-80%p"
+		android:toYDelta="0%p"/>
 
-    <alpha
-        android:fromAlpha="0"
-        android:toAlpha="1"
-        />
+	<alpha
+		android:fromAlpha="0"
+		android:toAlpha="1"
+		/>
 
 </set>

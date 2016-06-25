@@ -1,75 +1,75 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@android:color/black"
-    tools:context=".ui.MainActivity"
-    >
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:background="@android:color/black"
+	tools:context=".ui.MainActivity"
+	>
 
-    <com.rm.cameraphone.components.SwipingFrameLayout
-        android:id="@+id/camera_preview"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        />
+	<com.rm.cameraphone.components.SwipingFrameLayout
+		android:id="@+id/camera_preview"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		/>
 
-    <com.rm.cameraphone.components.camera.FlashSwitcher
-        android:id="@+id/camera_flash_switcher"
-        android:layout_width="32dp"
-        android:layout_height="58dp"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentTop="true"
-        android:layout_marginTop="20dp"
-        android:layout_marginRight="16dp"
-        android:layout_marginEnd="16dp"
-        />
+	<com.rm.cameraphone.components.camera.FlashSwitcher
+		android:id="@+id/camera_flash_switcher"
+		android:layout_width="32dp"
+		android:layout_height="58dp"
+		android:layout_alignParentEnd="true"
+		android:layout_alignParentRight="true"
+		android:layout_alignParentTop="true"
+		android:layout_marginTop="20dp"
+		android:layout_marginRight="16dp"
+		android:layout_marginEnd="16dp"
+		/>
 
-    <include
-        android:id="@+id/camera_preview_overlay"
-        layout="@layout/box_preview_overlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        />
+	<include
+		android:id="@+id/camera_preview_overlay"
+		layout="@layout/box_preview_overlay"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		/>
 
-    <com.rm.cameraphone.components.VideoPlayerView
-        android:id="@+id/camera_video_shot_preview"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone"
-        />
+	<com.rm.cameraphone.components.VideoPlayerView
+		android:id="@+id/camera_video_shot_preview"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:visibility="gone"
+		/>
 
-    <include
-        layout="@layout/box_capture_wrapper"
-        android:id="@+id/camera_capture_wrapper"
-        android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:layout_alignParentBottom="true"
-        />
+	<include
+		layout="@layout/box_capture_wrapper"
+		android:id="@+id/camera_capture_wrapper"
+		android:layout_width="match_parent"
+		android:layout_height="100dp"
+		android:layout_alignParentBottom="true"
+		/>
 
-    <ImageView
-        android:id="@+id/camera_photo_shot_preview"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_above="@id/camera_capture_wrapper"
-        android:scaleType="centerInside"
-        android:visibility="gone"
-        />
+	<ImageView
+		android:id="@+id/camera_photo_shot_preview"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:layout_above="@id/camera_capture_wrapper"
+		android:scaleType="centerInside"
+		android:visibility="gone"
+		/>
 
-    <com.rm.cameraphone.components.camera.TimingView
-        android:id="@+id/camera_timer"
-        android:layout_width="58dp"
-        android:layout_height="26dp"
-        android:layout_centerHorizontal="true"
-        android:alpha="0"/>
-    
-    <com.rm.cameraphone.components.camera.SchemeIndicator
-        android:id="@+id/camera_indicator"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:layout_above="@id/camera_capture_wrapper"
-        android:layout_centerHorizontal="true"
-        />
+	<com.rm.cameraphone.components.camera.TimingView
+		android:id="@+id/camera_timer"
+		android:layout_width="58dp"
+		android:layout_height="26dp"
+		android:layout_centerHorizontal="true"
+		android:alpha="0"/>
+
+	<com.rm.cameraphone.components.camera.SchemeIndicator
+		android:id="@+id/camera_indicator"
+		android:layout_width="24dp"
+		android:layout_height="24dp"
+		android:layout_above="@id/camera_capture_wrapper"
+		android:layout_centerHorizontal="true"
+		/>
 
 </RelativeLayout>

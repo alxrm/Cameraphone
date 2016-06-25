@@ -114,7 +114,7 @@ public class CaptureButton extends View {
         mStrokePaint.setStyle(Paint.Style.STROKE);
         mStrokePaint.setStrokeWidth(dp(SHAPE_STROKE_WIDTH));
         mStrokePaint.setColor(Color.WHITE);
-        
+
         mCenterFillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mCenterFillPaint.setStyle(Paint.Style.FILL);
         mCenterFillPaint.setColor(COLOR_CAPTURE_CENTER_PHOTO_FILL);
@@ -264,7 +264,7 @@ public class CaptureButton extends View {
 
                         invalidate();
                     }
-        }).start();
+                }).start();
     }
 
     private void animateCenter(boolean toHide) {
@@ -356,7 +356,7 @@ public class CaptureButton extends View {
 
                         invalidate();
                     }
-        });
+                });
 
         animatorSet.playTogether(animatorColor, animatorShape);
         animatorSet.start();

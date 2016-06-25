@@ -61,7 +61,7 @@ public class VideoPlayerView extends FrameLayout implements
         ));
         mSurfaceView.setZOrderMediaOverlay(true);
         mSurfaceView.setVisibility(GONE);
-        
+
         mProgressTask = registerVideoProgressTask();
     }
 
